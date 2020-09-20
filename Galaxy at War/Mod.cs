@@ -20,6 +20,7 @@ namespace GalaxyatWar
 {
     public static class Mod
     {
+        internal static Globals Globals = new Globals();
         //Remove duplicates in the ContractEmployerIDList
         [HarmonyPatch(typeof(SimGameState), "GetValidParticipants")]
         public static class SimGameStateGetValidParticipantsPatch

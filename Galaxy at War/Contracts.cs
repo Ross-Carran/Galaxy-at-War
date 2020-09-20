@@ -20,7 +20,7 @@ namespace GalaxyatWar
         {
             min = minDiff;
             max = maxDiff;
-            actualDifficulty = Globals.Rng.Next(min, max + 1);
+            actualDifficulty = Mod.Globals.Rng.Next(min, max + 1);
             var difficultyRange = new SimGameState.ContractDifficultyRange(
                 actualDifficulty, actualDifficulty, ContractDifficulty.Easy, ContractDifficulty.Easy);
             var potentialContracts = GetSinglePlayerProceduralContractOverrides(difficultyRange)
@@ -31,9 +31,9 @@ namespace GalaxyatWar
             var source = playableMaps.Select(map => map.Map.Weight);
             var activeMaps = new WeightedList<MapAndEncounters>(WeightedListType.SimpleRandom, playableMaps.ToList(), source.ToList());
             var next = activeMaps.GetNext();
-            var mapEncounterContractData = Globals.Sim.FillMapEncounterContractData(system, difficultyRange, potentialContracts, validParticipants, next);
+            var mapEncounterContractData = Mod.Globals.Sim.FillMapEncounterContractData(system, difficultyRange, potentialContracts, validParticipants, next);
             system.SetCurrentContractFactions();
-            var gameContext = new GameContext(Globals.Sim.Context);
+            var gameContext = new GameContext(Mod.Globals.Sim.Context);
             gameContext.SetObject(GameContextObjectTagEnum.TargetStarSystem, system);
             if (mapEncounterContractData.FlatContracts.rootList == null ||
                 mapEncounterContractData.FlatContracts.rootList.Count < 1)
@@ -55,7 +55,7 @@ namespace GalaxyatWar
             GameContext gameContext)
         {
             var flatContracts = MapEncounterContractData.FlatContracts;
-            Globals.Sim.FilterContracts(flatContracts);
+            Mod.Globals.Sim.FilterContracts(flatContracts);
             var next = flatContracts.GetNext();
             var id = next.contractOverride.ContractTypeValue.ID;
             MapEncounterContractData.Encounters[id].Shuffle();
@@ -88,14 +88,14 @@ namespace GalaxyatWar
                     level.Map.MapPath,
                     encounterLayerGuid,
                     next.contractOverride.ContractTypeValue,
-                    Globals.Sim.BattleTechGame,
+                    Mod.Globals.Sim.BattleTechGame,
                     contractOverride,
                     gameContext,
                     true,
                     actualDifficulty);
 
-            Globals.Sim.mapDiscardPile.Add(level.Map.MapID);
-            Globals.Sim.contractDiscardPile.Add(contractOverride.ID);
+            Mod.Globals.Sim.mapDiscardPile.Add(level.Map.MapID);
+            Mod.Globals.Sim.contractDiscardPile.Add(contractOverride.ID);
             PrepContract(contract,
                 employer,
                 employerAlly,
@@ -127,7 +127,7 @@ namespace GalaxyatWar
         {
             Log("CreateTravelContract");
             var starSystem = context.GetObject(GameContextObjectTagEnum.TargetStarSystem) as StarSystem;
-            var seed = Globals.Rng.Next(0, int.MaxValue);
+            var seed = Mod.Globals.Rng.Next(0, int.MaxValue);
             ovr.FullRehydrate();
             var contractOverride = new ContractOverride();
             contractOverride.CopyContractTypeData(ovr);
@@ -166,7 +166,7 @@ namespace GalaxyatWar
             simGameEventResult.Actions = new SimGameResultAction[1];
             simGameEventResult.Actions[0] = gameResultAction;
             contractOverride.OnContractSuccessResults.Add(simGameEventResult);
-            return new Contract(mapName, mapPath, encounterGuid, contractTypeValue, Globals.Sim.BattleTechGame, contractOverride, context, true, actualDifficulty)
+            return new Contract(mapName, mapPath, encounterGuid, contractTypeValue, Mod.Globals.Sim.BattleTechGame, contractOverride, context, true, actualDifficulty)
             {
                 Override =
                 {
@@ -189,7 +189,7 @@ namespace GalaxyatWar
         {
             if (presetSeed != 0 && !contract.IsPriorityContract)
             {
-                var diff = Globals.Rng.Next(min, max + 1);
+                var diff = Mod.Globals.Rng.Next(min, max + 1);
                 contract.SetFinalDifficulty(diff);
             }
 
@@ -206,8 +206,8 @@ namespace GalaxyatWar
             contract.SetupContext();
             var finalDifficulty = contract.Override.finalDifficulty;
             var cbills = SimGameState.RoundTo(contract.Override.contractRewardOverride < 0
-                ? Globals.Sim.CalculateContractValueByContractType(contract.ContractTypeValue, finalDifficulty,
-                    Globals.Sim.Constants.Finances.ContractPricePerDifficulty, Globals.Sim.Constants.Finances.ContractPriceVariance, presetSeed)
+                ? Mod.Globals.Sim.CalculateContractValueByContractType(contract.ContractTypeValue, finalDifficulty,
+                    Mod.Globals.Sim.Constants.Finances.ContractPricePerDifficulty, Mod.Globals.Sim.Constants.Finances.ContractPriceVariance, presetSeed)
                 : (float) contract.Override.contractRewardOverride, 1000);
             contract.SetInitialReward(cbills);
             contract.SetBiomeSkin(skin);
@@ -218,11 +218,11 @@ namespace GalaxyatWar
             return MetadataDatabase.Instance.GetContractsByDifficultyRangeAndScopeAndOwnership(
                     (int) diffRange.MinDifficultyClamped,
                     (int) diffRange.MaxDifficultyClamped,
-                    Globals.Sim.ContractScope, true)
+                    Mod.Globals.Sim.ContractScope, true)
                 .Where(c => c.ContractTypeRow.IsSinglePlayerProcedural)
                 .GroupBy(c =>
                     (int) c.ContractTypeRow.ContractTypeID, c => c.ContractID)
-                .ToDictionary(c => c.Key, c => c.Select(ci => Globals.Sim.DataManager.ContractOverrides.Get(ci))
+                .ToDictionary(c => c.Key, c => c.Select(ci => Mod.Globals.Sim.DataManager.ContractOverrides.Get(ci))
                     .ToList());
         }
 
@@ -238,7 +238,7 @@ namespace GalaxyatWar
 
         private static Dictionary<string, WeightedList<SimGameState.ContractParticipants>> GetValidParticipants(StarSystem system, string employer, List<string> opFor)
         {
-            var employers = system.Def.ContractEmployerIDList.Where(e => !Globals.Sim.ignoredContractEmployers.Contains(e));
+            var employers = system.Def.ContractEmployerIDList.Where(e => !Mod.Globals.Sim.ignoredContractEmployers.Contains(e));
             FactionDef employerDef = default;
             if (!string.IsNullOrEmpty(employer))
             {
@@ -249,7 +249,7 @@ namespace GalaxyatWar
             var result = employers.Select(e => new
                 {
                     Employer = employer ?? e,
-                    Participants = GenerateContractParticipants(employerDef ?? Globals.Sim.factions[e], system.Def, opFor)
+                    Participants = GenerateContractParticipants(employerDef ?? Mod.Globals.Sim.factions[e], system.Def, opFor)
                 })
                 .Where(e => e.Participants.Any()).ToDictionary(e => e.Employer, t => t.Participants);
             return result;
@@ -262,37 +262,37 @@ namespace GalaxyatWar
                 ? opFor
                 : employer.Enemies.Where(t =>
                     system.ContractTargetIDList.Contains(t) &&
-                    !Globals.Sim.IgnoredContractTargets.Contains(t) &&
-                    !Globals.Sim.IsFactionAlly(FactionEnumeration.GetFactionByName(t))).ToList();
+                    !Mod.Globals.Sim.IgnoredContractTargets.Contains(t) &&
+                    !Mod.Globals.Sim.IsFactionAlly(FactionEnumeration.GetFactionByName(t))).ToList();
             var neutrals = FactionEnumeration.PossibleNeutralToAllList.Where(f =>
                 !employer.FactionValue.Equals(f) &&
-                !Globals.Sim.IgnoredContractTargets.Contains(f.Name)).ToList();
+                !Mod.Globals.Sim.IgnoredContractTargets.Contains(f.Name)).ToList();
             var hostiles = FactionEnumeration.PossibleHostileToAllList.Where(f =>
                 !employer.FactionValue.Equals(f) &&
-                !Globals.Sim.IgnoredContractTargets.Contains(f.Name)).ToList();
+                !Mod.Globals.Sim.IgnoredContractTargets.Contains(f.Name)).ToList();
             var allies = FactionEnumeration.PossibleAllyFallbackList.Where(f =>
                 !employer.FactionValue.Equals(f) &&
-                !Globals.Sim.IgnoredContractTargets.Contains(f.Name)).ToList();
+                !Mod.Globals.Sim.IgnoredContractTargets.Contains(f.Name)).ToList();
             foreach (var str in enemies)
             {
                 var target = str;
-                var targetFactionDef = Globals.Sim.factions[target];
+                var targetFactionDef = Mod.Globals.Sim.factions[target];
                 var mercenariesFactionValue = FactionEnumeration.GetHostileMercenariesFactionValue();
-                var defaultHostileFaction = Globals.Sim.GetDefaultHostileFaction(employer.FactionValue, targetFactionDef.FactionValue);
+                var defaultHostileFaction = Mod.Globals.Sim.GetDefaultHostileFaction(employer.FactionValue, targetFactionDef.FactionValue);
                 var defaultTargetAlly = allies.Where(f =>
                     !targetFactionDef.Enemies.Contains(f.Name) &&
                     !employer.Allies.Contains(f.Name) &&
-                    target != f.Name).DefaultIfEmpty(targetFactionDef.FactionValue).GetRandomElement(Globals.Sim.NetworkRandom);
+                    target != f.Name).DefaultIfEmpty(targetFactionDef.FactionValue).GetRandomElement(Mod.Globals.Sim.NetworkRandom);
                 var randomElement = allies.Where(f =>
                     !employer.Enemies.Contains(f.Name) &&
                     !targetFactionDef.Allies.Contains(f.Name) &&
-                    defaultTargetAlly != f && target != f.Name).DefaultIfEmpty(employer.FactionValue).GetRandomElement(Globals.Sim.NetworkRandom);
+                    defaultTargetAlly != f && target != f.Name).DefaultIfEmpty(employer.FactionValue).GetRandomElement(Mod.Globals.Sim.NetworkRandom);
                 var weightedList2 = targetFactionDef.Allies.Select(FactionEnumeration.GetFactionByName).Where(f =>
                     !employer.Allies.Contains(f.Name) &&
-                    !Globals.Sim.IgnoredContractTargets.Contains(f.Name)).DefaultIfEmpty(defaultTargetAlly).ToWeightedList(WeightedListType.PureRandom);
+                    !Mod.Globals.Sim.IgnoredContractTargets.Contains(f.Name)).DefaultIfEmpty(defaultTargetAlly).ToWeightedList(WeightedListType.PureRandom);
                 var weightedList3 = employer.Allies.Select(FactionEnumeration.GetFactionByName).Where(f =>
                     !targetFactionDef.Allies.Contains(f.Name) &&
-                    !Globals.Sim.IgnoredContractTargets.Contains(f.Name)).DefaultIfEmpty(randomElement).ToWeightedList(WeightedListType.PureRandom);
+                    !Mod.Globals.Sim.IgnoredContractTargets.Contains(f.Name)).DefaultIfEmpty(randomElement).ToWeightedList(WeightedListType.PureRandom);
                 var list2 = neutrals.Where(f =>
                     target != f.Name &&
                     !targetFactionDef.Enemies.Contains(f.Name) &&
@@ -327,10 +327,10 @@ namespace GalaxyatWar
                 out SimGameState.PotentialContract returnContract)
             {
                 returnContract = new SimGameState.PotentialContract();
-                if (Globals.Sim.GetValidFaction(system, validTargets, contractOvr.requirementList, out var chosenContractParticipants))
+                if (Mod.Globals.Sim.GetValidFaction(system, validTargets, contractOvr.requirementList, out var chosenContractParticipants))
                 {
                     system.SetCurrentContractFactions(chosenContractParticipants.Employer, chosenContractParticipants.Target);
-                    if (Globals.Sim.DoesContractMeetRequirements(system, level, contractOvr))
+                    if (Mod.Globals.Sim.DoesContractMeetRequirements(system, level, contractOvr))
                     {
                         returnContract = new SimGameState.PotentialContract
                         {

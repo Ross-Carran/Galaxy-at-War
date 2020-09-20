@@ -18,52 +18,52 @@ namespace GalaxyatWar
             private static void Prefix()
             {
                 LogDebug("OnDayPassed");
-                var starSystem = Globals.Sim.CurSystem;
+                var starSystem = Mod.Globals.Sim.CurSystem;
                 var contractEmployers = starSystem.Def.contractEmployerIDs;
                 var contractTargets = starSystem.Def.contractTargetIDs;
                 var owner = starSystem.OwnerValue;
-                LogDebug($"{starSystem.Name} owned by {owner.Name}");
-                LogDebug($"Employers in {starSystem.Name}");
-                contractEmployers.Do(x => LogDebug($"  {x}"));
-                LogDebug($"Targets in {starSystem.Name}");
-                contractTargets.Do(x => LogDebug($"  {x}"));
-                Globals.Sim.GetAllCurrentlySelectableContracts().Do(x => LogDebug($"{x.Name,-25} {x.Difficulty} ({x.Override.GetUIDifficulty()})"));
-                var systemStatus = Globals.WarStatusTracker.systems.Find(x => x.starSystem == starSystem);
+                //LogDebug($"{starSystem.Name} owned by {owner.Name}");
+                //LogDebug($"Employers in {starSystem.Name}");
+                //contractEmployers.Do(x => LogDebug($"  {x}"));
+                //LogDebug($"Targets in {starSystem.Name}");
+                //contractTargets.Do(x => LogDebug($"  {x}"));
+                //Mod.Globals.Sim.GetAllCurrentlySelectableContracts().Do(x => LogDebug($"{x.Name,-25} {x.Difficulty} ({x.Override.GetUIDifficulty()})"));
+                var systemStatus = Mod.Globals.WarStatusTracker.systems.Find(x => x.starSystem == starSystem);
                 var employers = systemStatus.influenceTracker.OrderByDescending(x=> x.Value).Select(x => x.Key).Take(2); 
-                foreach (var faction in Globals.Settings.IncludedFactions.Intersect(employers))
+                foreach (var faction in Mod.Globals.Settings.IncludedFactions.Intersect(employers))
                 {
-                    LogDebug($"{faction} Enemies:");
+                    //LogDebug($"{faction} Enemies:");
                     FactionEnumeration.GetFactionByName(faction).factionDef?.Enemies.Distinct().Do(x => LogDebug($"  {x}"));
-                    LogDebug($"{faction} Allies:");
+                    //LogDebug($"{faction} Allies:");
                     FactionEnumeration.GetFactionByName(faction).factionDef?.Allies.Do(x => LogDebug($"  {x}"));
-                    Log("");
+                    //Log("");
                 }
-                LogDebug("Player allies:");
-                foreach (var faction in Globals.Sim.AlliedFactions)
+                //LogDebug("Player allies:");
+                foreach (var faction in Mod.Globals.Sim.AlliedFactions)
                 {
-                    LogDebug($"  {faction}");
+                    //LogDebug($"  {faction}");
                 }
                 
-                if (Globals.Sim.IsCampaign && !Globals.Sim.CompanyTags.Contains("story_complete"))
+                if (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
-                Globals.WarStatusTracker.CurSystem = Globals.Sim.CurSystem.Name;
-                if (Globals.WarStatusTracker.HotBox.Contains(Globals.Sim.CurSystem.Name) && !Globals.WarStatusTracker.HotBoxTravelling)
+                Mod.Globals.WarStatusTracker.CurSystem = Mod.Globals.Sim.CurSystem.Name;
+                if (Mod.Globals.WarStatusTracker.HotBox.Contains(Mod.Globals.Sim.CurSystem.Name) && !Mod.Globals.WarStatusTracker.HotBoxTravelling)
                 {
-                    Globals.WarStatusTracker.EscalationDays--;
+                    Mod.Globals.WarStatusTracker.EscalationDays--;
 
-                    if (!Globals.WarStatusTracker.Deployment)
+                    if (!Mod.Globals.WarStatusTracker.Deployment)
                     {
-                        if (Globals.WarStatusTracker.EscalationDays == 0)
+                        if (Mod.Globals.WarStatusTracker.EscalationDays == 0)
                         {
                             HotSpots.CompleteEscalation();
                         }
 
-                        if (Globals.WarStatusTracker.EscalationOrder != null)
+                        if (Mod.Globals.WarStatusTracker.EscalationOrder != null)
                         {
-                            Globals.WarStatusTracker.EscalationOrder.PayCost(1);
-                            var activeItems = Globals.TaskTimelineWidget.ActiveItems;
-                            if (activeItems.TryGetValue(Globals.WarStatusTracker.EscalationOrder, out var taskManagementElement4))
+                            Mod.Globals.WarStatusTracker.EscalationOrder.PayCost(1);
+                            var activeItems = Mod.Globals.TaskTimelineWidget.ActiveItems;
+                            if (activeItems.TryGetValue(Mod.Globals.WarStatusTracker.EscalationOrder, out var taskManagementElement4))
                             {
                                 taskManagementElement4.UpdateItem(0);
                             }
@@ -71,60 +71,60 @@ namespace GalaxyatWar
                     }
                     else
                     {
-                        if (Globals.WarStatusTracker.EscalationOrder != null)
+                        if (Mod.Globals.WarStatusTracker.EscalationOrder != null)
                         {
-                            Globals.WarStatusTracker.EscalationOrder.PayCost(1);
-                            var activeItems = Globals.TaskTimelineWidget.ActiveItems;
-                            if (activeItems.TryGetValue(Globals.WarStatusTracker.EscalationOrder, out var taskManagementElement4))
+                            Mod.Globals.WarStatusTracker.EscalationOrder.PayCost(1);
+                            var activeItems = Mod.Globals.TaskTimelineWidget.ActiveItems;
+                            if (activeItems.TryGetValue(Mod.Globals.WarStatusTracker.EscalationOrder, out var taskManagementElement4))
                             {
                                 taskManagementElement4.UpdateItem(0);
                             }
                         }
 
-                        if (Globals.WarStatusTracker.EscalationDays <= 0)
+                        if (Mod.Globals.WarStatusTracker.EscalationDays <= 0)
                         {
-                            Globals.Sim.StopPlayMode();
+                            Mod.Globals.Sim.StopPlayMode();
 
-                            Globals.Sim.CurSystem.activeSystemContracts.Clear();
-                            Globals.Sim.CurSystem.activeSystemBreadcrumbs.Clear();
-                            HotSpots.TemporaryFlip(Globals.Sim.CurSystem, Globals.WarStatusTracker.DeploymentEmployer);
+                            Mod.Globals.Sim.CurSystem.activeSystemContracts.Clear();
+                            Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Clear();
+                            HotSpots.TemporaryFlip(Mod.Globals.Sim.CurSystem, Mod.Globals.WarStatusTracker.DeploymentEmployer);
 
-                            var maxHolder = Globals.Sim.CurSystem.CurMaxBreadcrumbs;
-                            var rand = Globals.Rng.Next(1, (int) Globals.Settings.DeploymentContracts);
+                            var maxHolder = Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs;
+                            var rand = Mod.Globals.Rng.Next(1, (int) Mod.Globals.Settings.DeploymentContracts);
 
-                            Traverse.Create(Globals.Sim.CurSystem).Property("CurMaxBreadcrumbs").SetValue(rand);
-                            Globals.Sim.GeneratePotentialContracts(true, null, Globals.Sim.CurSystem);
-                            Traverse.Create(Globals.Sim.CurSystem).Property("CurMaxBreadcrumbs").SetValue(maxHolder);
+                            Traverse.Create(Mod.Globals.Sim.CurSystem).Property("CurMaxBreadcrumbs").SetValue(rand);
+                            Mod.Globals.Sim.GeneratePotentialContracts(true, null, Mod.Globals.Sim.CurSystem);
+                            Traverse.Create(Mod.Globals.Sim.CurSystem).Property("CurMaxBreadcrumbs").SetValue(maxHolder);
 
-                            Globals.Sim.QueueCompleteBreadcrumbProcess(true);
-                            Globals.SimGameInterruptManager.QueueTravelPauseNotification("New Mission", "Our Employer has launched an attack. We must take a mission to support their operation. Let's check out our contracts and get to it!", Globals.Sim.GetCrewPortrait(SimGameCrew.Crew_Darius),
+                            Mod.Globals.Sim.QueueCompleteBreadcrumbProcess(true);
+                            Mod.Globals.SimGameInterruptManager.QueueTravelPauseNotification("New Mission", "Our Employer has launched an attack. We must take a mission to support their operation. Let's check out our contracts and get to it!", Mod.Globals.Sim.GetCrewPortrait(SimGameCrew.Crew_Darius),
                                 string.Empty, null, "Proceed");
                         }
                     }
                 }
 
-                if (!Globals.WarStatusTracker.StartGameInitialized)
+                if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
                 {
                     LogDebug("Reinitializing contracts because !StartGameInitialized");
-                    var cmdCenter = Globals.Sim.RoomManager.CmdCenterRoom;
-                    Globals.Sim.CurSystem.GenerateInitialContracts(() => Traverse.Create(cmdCenter).Method("OnContractsFetched"));
-                    Globals.WarStatusTracker.StartGameInitialized = true;
+                    var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
+                    Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => Traverse.Create(cmdCenter).Method("OnContractsFetched"));
+                    Mod.Globals.WarStatusTracker.StartGameInitialized = true;
                 }
             }
 
             public static void Postfix()
             {
-                if (Globals.WarStatusTracker == null || Globals.Sim.IsCampaign && !Globals.Sim.CompanyTags.Contains("story_complete"))
+                if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
-                if (!Globals.WarStatusTracker.GaW_Event_PopUp)
+                if (!Mod.Globals.WarStatusTracker.GaW_Event_PopUp)
                 {
                     GaW_Notification();
-                    Globals.WarStatusTracker.GaW_Event_PopUp = true;
+                    Mod.Globals.WarStatusTracker.GaW_Event_PopUp = true;
                 }
 
                 //TEST: run 100 WarTicks and stop
-                if (Globals.Settings.LongWarTesting)
+                if (Mod.Globals.Settings.LongWarTesting)
                 {
                     LogDebug("LongWarTesting underway...");
                     for (var i = 0; i < 100; i++)
@@ -135,24 +135,24 @@ namespace GalaxyatWar
                         WarTick.Tick(true, true);
                     }
 
-                    Globals.Sim.StopPlayMode();
+                    Mod.Globals.Sim.StopPlayMode();
                     return;
                 }
 
                 //Remove systems from the protected pool.
-                foreach (var tag in Globals.Sim.CompanyTags)
+                foreach (var tag in Mod.Globals.Sim.CompanyTags)
                 {
-                    if (Globals.Settings.FlashpointReleaseSystems.Keys.Contains(tag))
+                    if (Mod.Globals.Settings.FlashpointReleaseSystems.Keys.Contains(tag))
                     {
-                        if (Globals.WarStatusTracker.FlashpointSystems.Contains(Globals.Settings.FlashpointReleaseSystems[tag]))
-                            Globals.WarStatusTracker.FlashpointSystems.Remove(Globals.Settings.FlashpointReleaseSystems[tag]);
+                        if (Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(Mod.Globals.Settings.FlashpointReleaseSystems[tag]))
+                            Mod.Globals.WarStatusTracker.FlashpointSystems.Remove(Mod.Globals.Settings.FlashpointReleaseSystems[tag]);
                     }
                 }
 
-                if (Globals.Sim.DayRemainingInQuarter % Globals.Settings.WarFrequency == 0)
+                if (Mod.Globals.Sim.DayRemainingInQuarter % Mod.Globals.Settings.WarFrequency == 0)
                 {
                     //LogDebug(">>> PROC");
-                    if (Globals.Sim.DayRemainingInQuarter != 30)
+                    if (Mod.Globals.Sim.DayRemainingInQuarter != 30)
                     {
                         WarTick.Tick(false, false);
                     }
@@ -160,12 +160,12 @@ namespace GalaxyatWar
                     {
                         //GenerateMonthlyContracts();
                         WarTick.Tick(true, true);
-                        var hasFlashPoint = Globals.Sim.CurSystem.SystemContracts.Any(x => x.IsFlashpointContract || x.IsFlashpointCampaignContract);
-                        if (!Globals.WarStatusTracker.HotBoxTravelling && !Globals.WarStatusTracker.HotBox.Contains(Globals.Sim.CurSystem.Name) && !hasFlashPoint)
+                        var hasFlashPoint = Mod.Globals.Sim.CurSystem.SystemContracts.Any(x => x.IsFlashpointContract || x.IsFlashpointCampaignContract);
+                        if (!Mod.Globals.WarStatusTracker.HotBoxTravelling && !Mod.Globals.WarStatusTracker.HotBox.Contains(Mod.Globals.Sim.CurSystem.Name) && !hasFlashPoint)
                         {
                             LogDebug("Regenerating contracts because month-end.");
-                            var cmdCenter = Globals.Sim.RoomManager.CmdCenterRoom;
-                            Globals.Sim.CurSystem.GenerateInitialContracts(() => Traverse.Create(cmdCenter).Method("OnContractsFetched"));
+                            var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
+                            Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => Traverse.Create(cmdCenter).Method("OnContractsFetched"));
                         }
                     }
 

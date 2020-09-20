@@ -26,13 +26,13 @@ namespace GalaxyatWar
             var total = tempTargets.Values.Sum();
             var attackResources = warFaction.AttackResources - warFaction.AR_Against_Pirates;
             if (warFaction.ComstarSupported)
-                attackResources += Globals.Settings.GaW_Police_ARBonus;
+                attackResources += Mod.Globals.Settings.GaW_Police_ARBonus;
             warFaction.AR_Against_Pirates = 0;
-            if (Globals.Settings.AggressiveToggle && !Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
-                attackResources += Globals.Sim.Constants.Finances.LeopardBaseMaintenanceCost;
+            if (Mod.Globals.Settings.AggressiveToggle && !Mod.Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
+                attackResources += Mod.Globals.Sim.Constants.Finances.LeopardBaseMaintenanceCost;
 
-            attackResources = attackResources * (1 + warFaction.DaysSinceSystemAttacked * Globals.Settings.AResourceAdjustmentPerCycle / 100);
-            attackResources += attackResources * (float) (Globals.Rng.Next(-1, 1) * Globals.Settings.ResourceSpread);
+            attackResources = attackResources * (1 + warFaction.DaysSinceSystemAttacked * Mod.Globals.Settings.AResourceAdjustmentPerCycle / 100);
+            attackResources += attackResources * (float) (Mod.Globals.Rng.Next(-1, 1) * Mod.Globals.Settings.ResourceSpread);
             foreach (var rfact in tempTargets.Keys)
             {
                 warFar.Add(rfact, tempTargets[rfact] * attackResources / total);
@@ -41,7 +41,7 @@ namespace GalaxyatWar
 
         public static void AllocateAttackResources(WarFaction warFaction)
         {
-            var factionRep = Globals.Sim.GetRawReputation(Globals.FactionValues.Find(x => x.Name == warFaction.faction));
+            var factionRep = Mod.Globals.Sim.GetRawReputation(Mod.Globals.FactionValues.Find(x => x.Name == warFaction.faction));
             var maxContracts = HotSpots.ProcessReputation(factionRep);
             if (warFaction.warFactionAttackResources.Count == 0)
                 return;
@@ -56,11 +56,11 @@ namespace GalaxyatWar
                 var map = new Dictionary<string, SystemStatus>();
                 foreach (var targetName in attackTargets)
                 {
-                    map.Add(targetName, Globals.WarStatusTracker.systems.Find(x => x.name == targetName));
+                    map.Add(targetName, Mod.Globals.WarStatusTracker.systems.Find(x => x.name == targetName));
                 }
 
                 var hatred = deathListTracker.deathList[targetFaction];
-                var targetWarFaction = Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == targetFaction);
+                var targetWarFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == targetFaction);
                 while (targetFar > 0 && attackTargets.Count > 0)
                 {
                     // DE-CONSTRUCTOR!
@@ -72,14 +72,14 @@ namespace GalaxyatWar
                         return;
                     }
 
-                    if (system.owner == warFaction.faction || Globals.WarStatusTracker.FlashpointSystems.Contains(system.name))
+                    if (system.owner == warFaction.faction || Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(system.name))
                     {
                         attackTargets.Remove(target);
                         return;
                     }
 
                     //Find most valuable target for attacking for later. Used in HotSpots.
-                    if (hatred >= Globals.Settings.PriorityHatred &&
+                    if (hatred >= Mod.Globals.Settings.PriorityHatred &&
                         system.DifficultyRating <= maxContracts &&
                         system.DifficultyRating >= maxContracts - 4)
                     {
@@ -89,14 +89,14 @@ namespace GalaxyatWar
                             system.CurrentlyAttackedBy.Add(warFaction.faction);
                         }
 
-                        if (!Globals.WarStatusTracker.PrioritySystems.Contains(system.starSystem.Name))
+                        if (!Mod.Globals.WarStatusTracker.PrioritySystems.Contains(system.starSystem.Name))
                         {
-                            Globals.WarStatusTracker.PrioritySystems.Add(system.starSystem.Name);
+                            Mod.Globals.WarStatusTracker.PrioritySystems.Add(system.starSystem.Name);
                         }
                     }
 
                     //Distribute attacking resources to systems.
-                    if (system.Contended || Globals.WarStatusTracker.HotBox.Contains(system.name))
+                    if (system.Contended || Mod.Globals.WarStatusTracker.HotBox.Contains(system.name))
                     {
                         attackTargets.Remove(system.starSystem.Name);
                         if (warFaction.attackTargets[targetFaction].Count == 0 || !warFaction.attackTargets.Keys.Contains(targetFaction))
@@ -107,9 +107,9 @@ namespace GalaxyatWar
                         continue;
                     }
 
-                    var arFactor = Random.Range(Globals.Settings.MinimumResourceFactor, Globals.Settings.MaximumResourceFactor);
+                    var arFactor = Random.Range(Mod.Globals.Settings.MinimumResourceFactor, Mod.Globals.Settings.MaximumResourceFactor);
                     var spendAR = Mathf.Min(startingTargetFar * arFactor, targetFar);
-                    spendAR = spendAR < 1 ? 1 : Math.Max(1 * Globals.SpendFactor, spendAR * Globals.SpendFactor);
+                    spendAR = spendAR < 1 ? 1 : Math.Max(1 * Mod.Globals.SpendFactor, spendAR * Mod.Globals.SpendFactor);
                     var maxValueList = system.influenceTracker.Values.OrderByDescending(x => x).ToList();
                     var pMaxValue = 200.0f;
                     if (maxValueList.Count > 1)
@@ -146,19 +146,19 @@ namespace GalaxyatWar
             var faction = warFaction.faction;
             var defensiveResources = warFaction.DefensiveResources + warFaction.DR_Against_Pirates;
             if (warFaction.ComstarSupported)
-                defensiveResources += Globals.Settings.GaW_Police_DRBonus;
+                defensiveResources += Mod.Globals.Settings.GaW_Police_DRBonus;
             warFaction.DR_Against_Pirates = 0;
-            if (Globals.Settings.AggressiveToggle && Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
-                defensiveResources += Globals.Sim.Constants.Finances.LeopardBaseMaintenanceCost;
-            var defensiveCorrection = defensiveResources * (100 * Globals.Settings.GlobalDefenseFactor -
-                                                            Globals.Settings.DResourceAdjustmentPerCycle * warFaction.DaysSinceSystemLost) / 100;
+            if (Mod.Globals.Settings.AggressiveToggle && Mod.Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
+                defensiveResources += Mod.Globals.Sim.Constants.Finances.LeopardBaseMaintenanceCost;
+            var defensiveCorrection = defensiveResources * (100 * Mod.Globals.Settings.GlobalDefenseFactor -
+                                                            Mod.Globals.Settings.DResourceAdjustmentPerCycle * warFaction.DaysSinceSystemLost) / 100;
             defensiveResources = Math.Max(defensiveResources, defensiveCorrection);
-            defensiveResources += defensiveResources * (float) (Globals.Rng.Next(-1, 1) * Globals.Settings.ResourceSpread);
+            defensiveResources += defensiveResources * (float) (Mod.Globals.Rng.Next(-1, 1) * Mod.Globals.Settings.ResourceSpread);
             var startingDefensiveResources = defensiveResources;
             var map = new Dictionary<string, SystemStatus>();
             foreach (var defenseTarget in warFaction.defenseTargets.Distinct())
             {
-                map.Add(defenseTarget, Globals.WarStatusTracker.systems.Find(x => x.name == defenseTarget));
+                map.Add(defenseTarget, Mod.Globals.WarStatusTracker.systems.Find(x => x.name == defenseTarget));
             }
 
             // spend and decrement defensiveResources
@@ -166,9 +166,9 @@ namespace GalaxyatWar
             {
                 var highest = 0f;
                 var highestFaction = faction;
-                var drFactor = Random.Range(Globals.Settings.MinimumResourceFactor, Globals.Settings.MaximumResourceFactor);
+                var drFactor = Random.Range(Mod.Globals.Settings.MinimumResourceFactor, Mod.Globals.Settings.MaximumResourceFactor);
                 var spendDr = Mathf.Min(startingDefensiveResources * drFactor, defensiveResources);
-                spendDr = spendDr < 1 ? 1 : Math.Max(1 * Globals.SpendFactor, spendDr * Globals.SpendFactor);
+                spendDr = spendDr < 1 ? 1 : Math.Max(1 * Mod.Globals.SpendFactor, spendDr * Mod.Globals.SpendFactor);
 
                 var systemStatus = map.GetRandomElement().Value;
                 if (systemStatus == null)
@@ -177,7 +177,7 @@ namespace GalaxyatWar
                     return;
                 }
 
-                if (systemStatus.Contended || Globals.WarStatusTracker.HotBox.Contains(systemStatus.name))
+                if (systemStatus.Contended || Mod.Globals.WarStatusTracker.HotBox.Contains(systemStatus.name))
                 {
                     warFaction.defenseTargets.Remove(systemStatus.starSystem.Name);
                     if (warFaction.defenseTargets.Count == 0 || warFaction.defenseTargets == null)
@@ -220,9 +220,9 @@ namespace GalaxyatWar
                 else
                 {
                     var diffRes = systemStatus.influenceTracker[highestFaction] / total - systemStatus.influenceTracker[faction] / total;
-                    var bonusDefense = spendDr + (diffRes * total - Globals.Settings.TakeoverThreshold / 100 * total) / (Globals.Settings.TakeoverThreshold / 100 + 1);
+                    var bonusDefense = spendDr + (diffRes * total - Mod.Globals.Settings.TakeoverThreshold / 100 * total) / (Mod.Globals.Settings.TakeoverThreshold / 100 + 1);
                     //LogDebug(bonusDefense);
-                    if (100 * diffRes > Globals.Settings.TakeoverThreshold)
+                    if (100 * diffRes > Mod.Globals.Settings.TakeoverThreshold)
                         if (defensiveResources >= bonusDefense)
                         {
                             systemStatus.influenceTracker[faction] += bonusDefense;

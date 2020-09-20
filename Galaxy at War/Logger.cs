@@ -3,7 +3,6 @@ using System.IO;
 using System.Reflection;
 using Harmony;
 using UnityEngine;
-using static GalaxyatWar.Globals;
 
 namespace GalaxyatWar
 {
@@ -40,7 +39,7 @@ namespace GalaxyatWar
         {
             try
             {
-                if (!Settings.Debug) return;
+                if (!Mod.Globals.Settings.Debug) return;
                 using (var writer = new StreamWriter(LogFilePath, true))
                 {
                     await writer.WriteLineAsync($"{GetFormattedStartupTime()}  {line}");
@@ -62,7 +61,7 @@ namespace GalaxyatWar
 
         public static void Clear()
         {
-            if (!Settings.Debug) return;
+            if (!Mod.Globals.Settings.Debug) return;
             using (var writer = new StreamWriter(LogFilePath, false))
             {
                 writer.WriteLine($"{DateTime.Now.ToLongTimeString()} Galaxy-at-War Init");

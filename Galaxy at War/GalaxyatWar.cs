@@ -18,20 +18,20 @@ namespace GalaxyatWar
             // read settings
             try
             {
-                Settings = JsonConvert.DeserializeObject<ModSettings>(settings);
-                Settings.modDirectory = modDir;
+               Mod.Globals.Settings = JsonConvert.DeserializeObject<ModSettings>(settings);
+               Mod.Globals.Settings.modDirectory = modDir;
             }
             catch (Exception)
             {
-                Settings = new ModSettings();
+                Mod.Globals.Settings = new ModSettings();
             }
 
             Logger.Clear();
             Logger.LogDebug("GaW Starting up...");
             
-            foreach (var value in Settings.GetType().GetFields())
+            foreach (var value in Mod.Globals.Settings.GetType().GetFields())
             {
-                var v = value.GetValue(Settings);
+                var v = value.GetValue(Mod.Globals.Settings);
                 Logger.LogDebug($"{value.Name}: {v}");
                 if (v is List<string> list)
                 {

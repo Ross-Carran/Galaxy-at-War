@@ -59,22 +59,22 @@ namespace GalaxyatWar
         public WarStatus()
         {
             Logger.LogDebug("WarStatus ctor");
-            if (Globals.Settings.ISMCompatibility)
-                Globals.Settings.IncludedFactions = new List<string>(Globals.Settings.IncludedFactions_ISM);
+            if (Mod.Globals.Settings.ISMCompatibility)
+                Mod.Globals.Settings.IncludedFactions = new List<string>(Mod.Globals.Settings.IncludedFactions_ISM);
 
-            CurSystem = Globals.Sim.CurSystem.Name;
+            CurSystem = Mod.Globals.Sim.CurSystem.Name;
             TempPRGain = 0;
             HotBoxTravelling = false;
             HotBox = new List<string>();
-            if (Globals.Settings.HyadesRimCompatible)
+            if (Mod.Globals.Settings.HyadesRimCompatible)
             {
-                InactiveTHRFactions = Globals.Settings.HyadesAppearingPirates;
-                FlashpointSystems = Globals.Settings.HyadesFlashpointSystems;
-                NeverControl = Globals.Settings.HyadesNeverControl;
+                InactiveTHRFactions = Mod.Globals.Settings.HyadesAppearingPirates;
+                FlashpointSystems = Mod.Globals.Settings.HyadesFlashpointSystems;
+                NeverControl = Mod.Globals.Settings.HyadesNeverControl;
             }
 
             //initialize all WarFactions, DeathListTrackers, and SystemStatuses
-            foreach (var faction in Globals.Settings.IncludedFactions)
+            foreach (var faction in Mod.Globals.Settings.IncludedFactions)
             {
                 var warFaction = new WarFaction(faction);
                 var d = new DeathListTracker(faction)
@@ -86,12 +86,12 @@ namespace GalaxyatWar
                 deathListTracker.Add(d);
             }
 
-            foreach (var system in Globals.GaWSystems)
+            foreach (var system in Mod.Globals.GaWSystems)
             {
                 if (system.OwnerValue.Name == "NoFaction" || system.OwnerValue.Name == "AuriganPirates")
                     AbandonedSystems.Add(system.Name);
                 var warFaction = warFactionTracker.Find(x => x.faction == system.OwnerValue.Name);
-                if (Globals.Settings.DefensiveFactions.Contains(warFaction.faction) && Globals.Settings.DefendersUseARforDR)
+                if (Mod.Globals.Settings.DefensiveFactions.Contains(warFaction.faction) && Mod.Globals.Settings.DefendersUseARforDR)
                     warFaction.DefensiveResources += GetTotalAttackResources(system);
                 else
                     warFaction.AttackResources += GetTotalAttackResources(system);
@@ -102,49 +102,49 @@ namespace GalaxyatWar
             var maxAR = warFactionTracker.Select(x => x.AttackResources).Max();
             var maxDR = warFactionTracker.Select(x => x.DefensiveResources).Max();
 
-            foreach (var faction in Globals.Settings.IncludedFactions)
+            foreach (var faction in Mod.Globals.Settings.IncludedFactions)
             {
                 var warFaction = warFactionTracker.Find(x => x.faction == faction);
-                if (Globals.Settings.DefensiveFactions.Contains(faction) && Globals.Settings.DefendersUseARforDR)
+                if (Mod.Globals.Settings.DefensiveFactions.Contains(faction) && Mod.Globals.Settings.DefendersUseARforDR)
                 {
-                    if (!Globals.Settings.ISMCompatibility)
-                        warFaction.DefensiveResources = maxAR + maxDR + Globals.Settings.BonusAttackResources[faction] +
-                                                        Globals.Settings.BonusDefensiveResources[faction];
+                    if (!Mod.Globals.Settings.ISMCompatibility)
+                        warFaction.DefensiveResources = maxAR + maxDR + Mod.Globals.Settings.BonusAttackResources[faction] +
+                                                        Mod.Globals.Settings.BonusDefensiveResources[faction];
                     else
-                        warFaction.DefensiveResources = maxAR + maxDR + Globals.Settings.BonusAttackResources_ISM[faction] +
-                                                        Globals.Settings.BonusDefensiveResources_ISM[faction];
+                        warFaction.DefensiveResources = maxAR + maxDR + Mod.Globals.Settings.BonusAttackResources_ISM[faction] +
+                                                        Mod.Globals.Settings.BonusDefensiveResources_ISM[faction];
 
                     warFaction.AttackResources = 0;
                 }
                 else
                 {
-                    if (!Globals.Settings.ISMCompatibility)
+                    if (!Mod.Globals.Settings.ISMCompatibility)
                     {
-                        warFaction.AttackResources = maxAR + Globals.Settings.BonusAttackResources[faction];
-                        warFaction.DefensiveResources = maxDR + Globals.Settings.BonusDefensiveResources[faction];
+                        warFaction.AttackResources = maxAR + Mod.Globals.Settings.BonusAttackResources[faction];
+                        warFaction.DefensiveResources = maxDR + Mod.Globals.Settings.BonusDefensiveResources[faction];
                     }
                     else
                     {
-                        warFaction.AttackResources = maxAR + Globals.Settings.BonusAttackResources_ISM[faction];
-                        warFaction.DefensiveResources = maxDR + Globals.Settings.BonusDefensiveResources_ISM[faction];
+                        warFaction.AttackResources = maxAR + Mod.Globals.Settings.BonusAttackResources_ISM[faction];
+                        warFaction.DefensiveResources = maxDR + Mod.Globals.Settings.BonusDefensiveResources_ISM[faction];
                     }
                 }
             }
 
             Logger.LogDebug("WarFaction bonus AR/DR set.");
-            if (!Globals.Settings.ISMCompatibility)
-                PirateResources = maxAR * Globals.Settings.FractionPirateResources + Globals.Settings.BonusPirateResources;
+            if (!Mod.Globals.Settings.ISMCompatibility)
+                PirateResources = maxAR * Mod.Globals.Settings.FractionPirateResources + Mod.Globals.Settings.BonusPirateResources;
             else
-                PirateResources = maxAR * Globals.Settings.FractionPirateResources_ISM + Globals.Settings.BonusPirateResources_ISM;
+                PirateResources = maxAR * Mod.Globals.Settings.FractionPirateResources_ISM + Mod.Globals.Settings.BonusPirateResources_ISM;
 
             MinimumPirateResources = PirateResources;
             StartingPirateResources = PirateResources;
             Logger.LogDebug("SystemStatus mass creation...");
-            systems = new List<SystemStatus>(Globals.GaWSystems.Count);
-            for (var index = 0; index < Globals.Sim.StarSystems.Count; index++)
+            systems = new List<SystemStatus>(Mod.Globals.GaWSystems.Count);
+            for (var index = 0; index < Mod.Globals.Sim.StarSystems.Count; index++)
             {
-                var system = Globals.Sim.StarSystems[index];
-                if (Globals.Settings.ImmuneToWar.Contains(system.OwnerValue.Name))
+                var system = Mod.Globals.Sim.StarSystems[index];
+                if (Mod.Globals.Settings.ImmuneToWar.Contains(system.OwnerValue.Name))
                 {
                     continue;
                 }
@@ -215,7 +215,7 @@ namespace GalaxyatWar
         {
             get
             {
-                return starSystemBackingField ?? (starSystemBackingField = Globals.Sim.StarSystems.Find(s => s.Name == name));
+                return starSystemBackingField ?? (starSystemBackingField = Mod.Globals.Sim.StarSystems.Find(s => s.Name == name));
             }
             private set => starSystemBackingField = value;
         }
@@ -240,11 +240,11 @@ namespace GalaxyatWar
             BonusCBills = false;
             BonusSalvage = false;
             BonusXP = false;
-            if (system.Tags.Contains("planet_other_pirate") && !Globals.Settings.HyadesFlashpointSystems.Contains(name))
-                if (!Globals.Settings.ISMCompatibility)
-                    PirateActivity = Globals.Settings.StartingPirateActivity;
+            if (system.Tags.Contains("planet_other_pirate") && !Mod.Globals.Settings.HyadesFlashpointSystems.Contains(name))
+                if (!Mod.Globals.Settings.ISMCompatibility)
+                    PirateActivity = Mod.Globals.Settings.StartingPirateActivity;
                 else
-                    PirateActivity = Globals.Settings.StartingPirateActivity_ISM;
+                    PirateActivity = Mod.Globals.Settings.StartingPirateActivity_ISM;
             FindNeighbors();
             CalculateSystemInfluence();
             InitializeContracts();
@@ -255,7 +255,7 @@ namespace GalaxyatWar
             try
             {
                 neighborSystems.Clear();
-                var neighbors = Globals.Sim.Starmap.GetAvailableNeighborSystem(starSystem);
+                var neighbors = Mod.Globals.Sim.Starmap.GetAvailableNeighborSystem(starSystem);
                 foreach (var neighborSystem in neighbors)
                 {
                     if (neighborSystems.ContainsKey(neighborSystem.OwnerValue.Name))
@@ -274,7 +274,7 @@ namespace GalaxyatWar
         public void CalculateSystemInfluence()
         {
             influenceTracker.Clear();
-            if (!Globals.Settings.HyadesRimCompatible)
+            if (!Mod.Globals.Settings.HyadesRimCompatible)
             {
                 if (owner == "NoFaction")
                     influenceTracker.Add("NoFaction", 100);
@@ -283,8 +283,8 @@ namespace GalaxyatWar
 
                 if (owner != "NoFaction" && owner != "Locals")
                 {
-                    influenceTracker.Add(owner, Globals.Settings.DominantInfluence);
-                    var remainingInfluence = Globals.Settings.MinorInfluencePool;
+                    influenceTracker.Add(owner, Mod.Globals.Settings.DominantInfluence);
+                    var remainingInfluence = Mod.Globals.Settings.MinorInfluencePool;
 
                     if (!(neighborSystems.Keys.Count == 1 && neighborSystems.Keys.Contains(owner)) && neighborSystems.Keys.Count != 0)
                     {
@@ -296,7 +296,7 @@ namespace GalaxyatWar
                                 {
                                     var influenceDelta = neighborSystems[faction];
                                     remainingInfluence -= influenceDelta;
-                                    if (Globals.Settings.DefensiveFactions.Contains(faction))
+                                    if (Mod.Globals.Settings.DefensiveFactions.Contains(faction))
                                         continue;
                                     if (influenceTracker.ContainsKey(faction))
                                         influenceTracker[faction] += influenceDelta;
@@ -308,7 +308,7 @@ namespace GalaxyatWar
                     }
                 }
 
-                foreach (var faction in Globals.IncludedFactions)
+                foreach (var faction in Mod.Globals.IncludedFactions)
                 {
                     if (!influenceTracker.Keys.Contains(faction))
                         influenceTracker.Add(faction, 0);
@@ -334,28 +334,28 @@ namespace GalaxyatWar
                 {
                     foreach (var pirateFaction in starSystem.Def.ContractEmployerIDList)
                     {
-                        if (Globals.Settings.HyadesNeverControl.Contains(pirateFaction))
+                        if (Mod.Globals.Settings.HyadesNeverControl.Contains(pirateFaction))
                             continue;
 
                         if (!influenceTracker.Keys.Contains(pirateFaction))
-                            influenceTracker.Add(pirateFaction, Globals.Settings.MinorInfluencePool);
+                            influenceTracker.Add(pirateFaction, Mod.Globals.Settings.MinorInfluencePool);
                     }
 
                     foreach (var pirateFaction in starSystem.Def.ContractTargetIDList)
                     {
-                        if (Globals.Settings.HyadesNeverControl.Contains(pirateFaction))
+                        if (Mod.Globals.Settings.HyadesNeverControl.Contains(pirateFaction))
                             continue;
 
                         if (!influenceTracker.Keys.Contains(pirateFaction))
-                            influenceTracker.Add(pirateFaction, Globals.Settings.MinorInfluencePool);
+                            influenceTracker.Add(pirateFaction, Mod.Globals.Settings.MinorInfluencePool);
                     }
                 }
 
 
                 if (owner != "NoFaction" && owner != "Locals")
                 {
-                    influenceTracker.Add(owner, Globals.Settings.DominantInfluence);
-                    var remainingInfluence = Globals.Settings.MinorInfluencePool;
+                    influenceTracker.Add(owner, Mod.Globals.Settings.DominantInfluence);
+                    var remainingInfluence = Mod.Globals.Settings.MinorInfluencePool;
 
                     if (!(neighborSystems.Keys.Count == 1 && neighborSystems.Keys.Contains(owner)) && neighborSystems.Keys.Count != 0)
                     {
@@ -367,7 +367,7 @@ namespace GalaxyatWar
                                 {
                                     var influenceDelta = neighborSystems[faction];
                                     remainingInfluence -= influenceDelta;
-                                    if (Globals.Settings.DefensiveFactions.Contains(faction))
+                                    if (Mod.Globals.Settings.DefensiveFactions.Contains(faction))
                                         continue;
                                     if (influenceTracker.ContainsKey(faction))
                                         influenceTracker[faction] += influenceDelta;
@@ -379,7 +379,7 @@ namespace GalaxyatWar
                     }
                 }
 
-                foreach (var faction in Globals.IncludedFactions)
+                foreach (var faction in Mod.Globals.IncludedFactions)
                 {
                     if (!influenceTracker.Keys.Contains(faction))
                         influenceTracker.Add(faction, 0);
@@ -399,7 +399,7 @@ namespace GalaxyatWar
 
         public void InitializeContracts()
         {
-            if (Globals.Settings.HyadesRimCompatible && starSystem.Tags.Contains("planet_region_hyadesrim") && (owner == "NoFaction" || owner == "Locals" || Globals.Settings.HyadesFlashpointSystems.Contains(name)))
+            if (Mod.Globals.Settings.HyadesRimCompatible && starSystem.Tags.Contains("planet_region_hyadesrim") && (owner == "NoFaction" || owner == "Locals" || Mod.Globals.Settings.HyadesFlashpointSystems.Contains(name)))
                 return;
 
             var ContractEmployers = starSystem.Def.ContractEmployerIDList;
@@ -409,9 +409,9 @@ namespace GalaxyatWar
             ContractTargets.Clear();
             ContractEmployers.Add(owner);
 
-            foreach (var EF in Globals.Settings.DefensiveFactions)
+            foreach (var EF in Mod.Globals.Settings.DefensiveFactions)
             {
-                if (Globals.Settings.ImmuneToWar.Contains(EF))
+                if (Mod.Globals.Settings.ImmuneToWar.Contains(EF))
                     continue;
                 ContractTargets.Add(EF);
             }
@@ -421,12 +421,12 @@ namespace GalaxyatWar
 
             foreach (var systemNeighbor in neighborSystems.Keys)
             {
-                if (Globals.Settings.ImmuneToWar.Contains(systemNeighbor))
+                if (Mod.Globals.Settings.ImmuneToWar.Contains(systemNeighbor))
                     continue;
-                if (!ContractEmployers.Contains(systemNeighbor) && !Globals.Settings.DefensiveFactions.Contains(systemNeighbor))
+                if (!ContractEmployers.Contains(systemNeighbor) && !Mod.Globals.Settings.DefensiveFactions.Contains(systemNeighbor))
                     ContractEmployers.Add(systemNeighbor);
 
-                if (!ContractTargets.Contains(systemNeighbor) && !Globals.Settings.DefensiveFactions.Contains(systemNeighbor))
+                if (!ContractTargets.Contains(systemNeighbor) && !Mod.Globals.Settings.DefensiveFactions.Contains(systemNeighbor))
                     ContractTargets.Add(systemNeighbor);
             }
         }
@@ -456,7 +456,7 @@ namespace GalaxyatWar
         {
             get
             {
-                return Globals.GaWSystems.Count(system => system.OwnerDef == Globals.Sim.factions[faction]);
+                return Mod.Globals.GaWSystems.Count(system => system.OwnerDef == Mod.Globals.Sim.factions[faction]);
             }
         }
 
@@ -470,7 +470,7 @@ namespace GalaxyatWar
 
         internal DeathListTracker DeathListTracker
         {
-            get => deathListTrackerBackingField ?? (deathListTrackerBackingField = Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction));
+            get => deathListTrackerBackingField ?? (deathListTrackerBackingField = Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction));
             set => deathListTrackerBackingField = value;
         }
 
@@ -492,7 +492,7 @@ namespace GalaxyatWar
             TotalSystemsChanged = 0;
             PirateARLoss = 0;
             PirateDRLoss = 0;
-            foreach (var startFaction in Globals.IncludedFactions)
+            foreach (var startFaction in Mod.Globals.IncludedFactions)
                 IncreaseAggression.Add(startFaction, false);
         }
     }
@@ -509,7 +509,7 @@ namespace GalaxyatWar
         {
             get
             {
-                return warFactionBackingField ?? (warFactionBackingField = Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == faction));
+                return warFactionBackingField ?? (warFactionBackingField = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == faction));
             }
             set => warFactionBackingField = value;
         }
@@ -525,20 +525,20 @@ namespace GalaxyatWar
             Logger.LogDebug("DeathListTracker ctor: " + faction);
 
             this.faction = faction;
-            var factionDef = Globals.Sim.GetFactionDef(faction);
+            var factionDef = Mod.Globals.Sim.GetFactionDef(faction);
 
             // TODO comment this
-            foreach (var includedFaction in Globals.IncludedFactions)
+            foreach (var includedFaction in Mod.Globals.IncludedFactions)
             {
-                var def = Globals.Sim.GetFactionDef(includedFaction);
-                if (!Globals.IncludedFactions.Contains(def.FactionValue.Name))
+                var def = Mod.Globals.Sim.GetFactionDef(includedFaction);
+                if (!Mod.Globals.IncludedFactions.Contains(def.FactionValue.Name))
                     continue;
                 if (factionDef != def && factionDef.Enemies.Contains(def.FactionValue.Name))
-                    deathList.Add(def.FactionValue.Name, Globals.Settings.KLValuesEnemies);
+                    deathList.Add(def.FactionValue.Name, Mod.Globals.Settings.KLValuesEnemies);
                 else if (factionDef != def && factionDef.Allies.Contains(def.FactionValue.Name))
-                    deathList.Add(def.FactionValue.Name, Globals.Settings.KLValueAllies);
+                    deathList.Add(def.FactionValue.Name, Mod.Globals.Settings.KLValueAllies);
                 else if (factionDef != def)
-                    deathList.Add(def.FactionValue.Name, Globals.Settings.KLValuesNeutral);
+                    deathList.Add(def.FactionValue.Name, Mod.Globals.Settings.KLValuesNeutral);
             }
         }
     }

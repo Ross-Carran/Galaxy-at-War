@@ -5,6 +5,7 @@ using BattleTech.Data;
 using BattleTech.Framework;
 using Harmony;
 using static GalaxyatWar.Logger;
+// ReSharper disable InconsistentNaming
 
 namespace GalaxyatWar
 {

@@ -11,7 +11,6 @@ namespace GalaxyatWar
 {
     public class Globals
     {
-        internal ModSettings Settings;
         internal WarStatus WarStatusTracker;
         internal readonly Random Rng = new Random();
         internal readonly Stopwatch T = new Stopwatch();
@@ -32,7 +31,6 @@ namespace GalaxyatWar
         internal SimGameInterruptManager SimGameInterruptManager;
         internal TaskTimelineWidget TaskTimelineWidget;
         internal TMP_FontAsset Font;
-        internal bool FirstDehydrate = true;
         internal bool ModInitialized;
         internal List<StarSystem> GaWSystems = new List<StarSystem>();
     }

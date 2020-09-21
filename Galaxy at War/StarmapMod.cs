@@ -39,7 +39,7 @@ namespace GalaxyatWar
                 }
 
                 __state = starSystem.Def.Description.Details;
-                if (Mod.Globals.Settings.ImmuneToWar.Contains(starSystem.OwnerValue.Name))
+                if (Mod.Settings.ImmuneToWar.Contains(starSystem.OwnerValue.Name))
                 {
                     return;
                 }
@@ -137,22 +137,22 @@ namespace GalaxyatWar
         {
             var sb = new StringBuilder();
             sb.AppendLine("<line-height=125%>");
-            foreach (var tracker in Mod.Globals.WarStatusTracker.deathListTracker.Where(x => !Mod.Globals.Settings.DefensiveFactions.Contains(x.faction)))
+            foreach (var tracker in Mod.Globals.WarStatusTracker.deathListTracker.Where(x => !Mod.Settings.DefensiveFactions.Contains(x.faction)))
             {
-                if (!Mod.Globals.Settings.FactionNames.ContainsKey(tracker.faction) || Mod.Globals.Settings.HyadesNeverControl.Contains(tracker.faction)
+                if (!Mod.Settings.FactionNames.ContainsKey(tracker.faction) || Mod.Settings.HyadesNeverControl.Contains(tracker.faction)
                                                                                 || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(tracker.faction))
                 {
-                    LogDebug($"faction {tracker.faction} doesn't exist in Mod.Mod.Globals.Settings.FactionNames, skipping...");
+                    LogDebug($"faction {tracker.faction} doesn't exist in Mod.Mod.Settings.FactionNames, skipping...");
                     continue;
                 }
 
                 var warFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == tracker.faction);
-                sb.AppendLine($"<b><u>{Mod.Globals.Settings.FactionNames[tracker.faction]}</b></u>\n");
+                sb.AppendLine($"<b><u>{Mod.Settings.FactionNames[tracker.faction]}</b></u>\n");
                 if (tracker.faction == Mod.Globals.WarStatusTracker.ComstarAlly)
                 {
-                    sb.AppendLine("<b>***" + Mod.Globals.Settings.GaW_Police + " Supported Faction***</b>");
-                    sb.AppendLine("Attack Resources: " + (warFaction.AttackResources + Mod.Globals.Settings.GaW_Police_ARBonus).ToString("0") +
-                                  " || Defense Resources: " + (warFaction.DefensiveResources + Mod.Globals.Settings.GaW_Police_DRBonus).ToString("0")
+                    sb.AppendLine("<b>***" + Mod.Settings.GaW_Police + " Supported Faction***</b>");
+                    sb.AppendLine("Attack Resources: " + (warFaction.AttackResources + Mod.Settings.GaW_Police_ARBonus).ToString("0") +
+                                  " || Defense Resources: " + (warFaction.DefensiveResources + Mod.Settings.GaW_Police_DRBonus).ToString("0")
                                   + " || Change in Systems: " + warFaction.TotalSystemsChanged + "\n");
                 }
                 else
@@ -167,14 +167,14 @@ namespace GalaxyatWar
                     sb.AppendLine("<u>Enemies</u>");
                 foreach (var enemy in tracker.Enemies)
                 {
-                    if (!Mod.Globals.Settings.FactionNames.ContainsKey(enemy) || Mod.Globals.Settings.HyadesNeverControl.Contains(enemy)
+                    if (!Mod.Settings.FactionNames.ContainsKey(enemy) || Mod.Settings.HyadesNeverControl.Contains(enemy)
                                                                           || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(enemy))
                     {
-                        LogDebug("Mod.Mod.Globals.Settings.FactionNames doesn't have " + enemy + " skipping...");
+                        LogDebug("Mod.Mod.Settings.FactionNames doesn't have " + enemy + " skipping...");
                         continue;
                     }
 
-                    sb.AppendLine($"{Mod.Globals.Settings.FactionNames[enemy],-20}");
+                    sb.AppendLine($"{Mod.Settings.FactionNames[enemy],-20}");
                 }
 
                 sb.AppendLine();
@@ -183,14 +183,14 @@ namespace GalaxyatWar
                     sb.AppendLine("<u>Allies</u>");
                 foreach (var ally in tracker.Allies)
                 {
-                    if (!Mod.Globals.Settings.FactionNames.ContainsKey(ally) || Mod.Globals.Settings.HyadesNeverControl.Contains(ally)
+                    if (!Mod.Settings.FactionNames.ContainsKey(ally) || Mod.Settings.HyadesNeverControl.Contains(ally)
                                                                          || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(ally))
                     {
-                        LogDebug("Mod.Mod.Globals.Settings.FactionNames doesn't have " + ally + " skipping...");
+                        LogDebug("Mod.Mod.Settings.FactionNames doesn't have " + ally + " skipping...");
                         continue;
                     }
 
-                    sb.AppendLine($"{Mod.Globals.Settings.FactionNames[ally],-20}");
+                    sb.AppendLine($"{Mod.Settings.FactionNames[ally],-20}");
                 }
 
                 sb.AppendLine();
@@ -258,7 +258,7 @@ namespace GalaxyatWar
             }
 
             if (starSystem.OwnerValue.Name == Mod.Globals.WarStatusTracker.ComstarAlly)
-                factionString.AppendLine("<b>" + starSystem.Name + "     ***" + Mod.Globals.Settings.GaW_Police + " Supported System***</b>");
+                factionString.AppendLine("<b>" + starSystem.Name + "     ***" + Mod.Settings.GaW_Police + " Supported System***</b>");
             else if (Mod.Globals.WarStatusTracker.AbandonedSystems.Contains(starSystem.Name))
                 factionString.AppendLine("<b>" + starSystem.Name + "     ***Abandoned***</b>");
             else
@@ -294,7 +294,7 @@ namespace GalaxyatWar
                 else
                     number = $"{influence.Value:#.0}%";
 
-                factionString.AppendLine($"{number,-15}{Mod.Globals.Settings.FactionNames[influence.Key]}");
+                factionString.AppendLine($"{number,-15}{Mod.Settings.FactionNames[influence.Key]}");
             }
 
             factionString.AppendLine($"\nPirate Activity: {tracker.PirateActivity:#0.0}%");
@@ -351,36 +351,37 @@ namespace GalaxyatWar
             }
         }
 
-        //[HarmonyPatch(typeof(StarmapScreen), "RefreshStarmap")]
-        //public static class StarmapScreen_RefreshStarmap__Patch
-        //{
-        //    public static void Prefix(StarmapRenderer __instance)
-        //    {
-        //        var sim = UnityGameInstance.BattleTechGame.Simulation;
-        //        if (Mod.Globals.WarStatusTracker == null || (sim.IsCampaign && !sim.CompanyTags.Contains("story_complete")))
-        //            return;
-        //
-        // TODO TEST
-        //        if (Mod.Globals.WarStatusTracker != null && !Mod.Globals.WarStatusTracker.StartGameInitialized)
-        //        {
-        //            LogDebug($"Refreshing contracts at RefreshStarmap. ({Mod.Globals.Sim.CurSystem.Name})");
-        //            var cmdCenter = UnityGameInstance.BattleTechGame.Simulation.RoomManager.CmdCenterRoom;
-        //            sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
-        //            Mod.Globals.WarStatusTracker.StartGameInitialized = true;
-        //        }
-        //    }
-        //}
+        // makes the starmap shows priority contracts when not initialized
+       [HarmonyPatch(typeof(StarmapScreen), "RefreshStarmap")]
+       public static class StarmapScreen_RefreshStarmap__Patch
+       {
+           public static void Prefix()
+           {
+               LogDebug($"RefreshStarmap");
+               var sim = UnityGameInstance.BattleTechGame.Simulation;
+               if (Mod.Globals.WarStatusTracker == null || sim.IsCampaign && !sim.CompanyTags.Contains("story_complete"))
+                   return;
+           
+               if (Mod.Globals.WarStatusTracker != null && !Mod.Globals.WarStatusTracker.StartGameInitialized)
+               {
+                   LogDebug($"Refreshing contracts at RefreshStarmap. ({Mod.Globals.Sim.CurSystem.Name})");
+                   var cmdCenter = UnityGameInstance.BattleTechGame.Simulation.RoomManager.CmdCenterRoom;
+                   sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+                   Mod.Globals.WarStatusTracker.StartGameInitialized = true;
+               }
+           }
+       }
 
         [HarmonyPatch(typeof(StarmapRenderer), "RefreshSystems")]
         public static class StarmapRendererRefreshSystemsPatch
         {
             public static void Postfix(StarmapRenderer __instance)
             {
-                if (Mod.Globals.WarStatusTracker == null || (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete")))
+                if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
-                if (!Mod.Globals.Settings.ExpandedMap)
-                    DynamicLogos.PlaceAndScaleLogos(Mod.Globals.Settings.LogoNames, __instance);
+                if (!Mod.Settings.ExpandedMap)
+                    DynamicLogos.PlaceAndScaleLogos(Mod.Settings.LogoNames, __instance);
             }
         }
 

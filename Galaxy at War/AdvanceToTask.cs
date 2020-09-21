@@ -1,6 +1,5 @@
 ﻿using System;
 using BattleTech;
-using static GalaxyatWar.Globals;
 
 namespace GalaxyatWar
 {
@@ -18,10 +17,10 @@ namespace GalaxyatWar
             Mod.Globals.Sim.SetTimeMoving(true);
 
             // set the elapseTime variable so that the days pass faster
-            if (Math.Abs(Mod.Globals.Sim.Constants.Time.DayElapseTimeNormal - Mod.Globals.Settings.AdvanceToTaskTime) > 0.01)
+            if (Math.Abs(Mod.Globals.Sim.Constants.Time.DayElapseTimeNormal - Mod.Settings.AdvanceToTaskTime) > 0.01)
             {
                 oldDayElapseTimeNormal = Mod.Globals.Sim.Constants.Time.DayElapseTimeNormal;
-                Mod.Globals.Sim.Constants.Time.DayElapseTimeNormal = Mod.Globals.Settings.AdvanceToTaskTime;
+                Mod.Globals.Sim.Constants.Time.DayElapseTimeNormal = Mod.Settings.AdvanceToTaskTime;
             }
         }
 

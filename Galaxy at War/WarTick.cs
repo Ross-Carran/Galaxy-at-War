@@ -18,9 +18,9 @@ namespace GalaxyatWar
             var systemSubsetSize = Mod.Globals.WarStatusTracker.systems.Count;
             List<SystemStatus> systemStatuses;
 
-            if (Mod.Globals.Settings.UseSubsetOfSystems && !useFullSet)
+            if (Mod.Settings.UseSubsetOfSystems && !useFullSet)
             {
-                systemSubsetSize = (int) (systemSubsetSize * Mod.Globals.Settings.SubSetFraction);
+                systemSubsetSize = (int) (systemSubsetSize * Mod.Settings.SubSetFraction);
                 systemStatuses = Mod.Globals.WarStatusTracker.systems
                     .OrderBy(x => Guid.NewGuid()).Take(systemSubsetSize)
                     .ToList();
@@ -30,7 +30,7 @@ namespace GalaxyatWar
                 systemStatuses = Mod.Globals.WarStatusTracker.systems;
             }
 
-            if (checkForSystemChange && Mod.Globals.Settings.GaW_PoliceSupport)
+            if (checkForSystemChange && Mod.Settings.GaW_PoliceSupport)
                 CalculateComstarSupport();
 
             if (Mod.Globals.WarStatusTracker.FirstTickInitialization)
@@ -42,10 +42,10 @@ namespace GalaxyatWar
                 foreach (var faction in sequence)
                 {
                     var systemCount = Mod.Globals.WarStatusTracker.systems.Count(x => x.owner == faction.faction);
-                    if (!Mod.Globals.Settings.ISMCompatibility && systemCount != 0)
+                    if (!Mod.Settings.ISMCompatibility && systemCount != 0)
                     {
-                        faction.AR_PerPlanet = (float) Mod.Globals.Settings.BonusAttackResources[faction.faction] / systemCount;
-                        faction.DR_PerPlanet = (float) Mod.Globals.Settings.BonusDefensiveResources[faction.faction] / systemCount;
+                        faction.AR_PerPlanet = (float) Mod.Settings.BonusAttackResources[faction.faction] / systemCount;
+                        faction.DR_PerPlanet = (float) Mod.Settings.BonusDefensiveResources[faction.faction] / systemCount;
                         if (faction.AR_PerPlanet < lowestAR)
                             lowestAR = faction.AR_PerPlanet;
                         if (faction.DR_PerPlanet < lowestDr)
@@ -53,8 +53,8 @@ namespace GalaxyatWar
                     }
                     else if (systemCount != 0)
                     {
-                        faction.AR_PerPlanet = (float) Mod.Globals.Settings.BonusAttackResources_ISM[faction.faction] / systemCount;
-                        faction.DR_PerPlanet = (float) Mod.Globals.Settings.BonusDefensiveResources_ISM[faction.faction] / systemCount;
+                        faction.AR_PerPlanet = (float) Mod.Settings.BonusAttackResources_ISM[faction.faction] / systemCount;
+                        faction.DR_PerPlanet = (float) Mod.Settings.BonusDefensiveResources_ISM[faction.faction] / systemCount;
                         if (faction.AR_PerPlanet < lowestAR)
                             lowestAR = faction.AR_PerPlanet;
                         if (faction.DR_PerPlanet < lowestDr)
@@ -87,7 +87,7 @@ namespace GalaxyatWar
             PiratesAndLocals.DistributePirateResources();
             PiratesAndLocals.DefendAgainstPirates();
 
-            if (checkForSystemChange && Mod.Globals.Settings.HyadesRimCompatible && Mod.Globals.WarStatusTracker.InactiveTHRFactions.Count != 0
+            if (checkForSystemChange && Mod.Settings.HyadesRimCompatible && Mod.Globals.WarStatusTracker.InactiveTHRFactions.Count != 0
                 && Mod.Globals.WarStatusTracker.HyadesRimGeneralPirateSystems.Count != 0)
             {
                 var rand = Mod.Globals.Rng.Next(0, 100);
@@ -128,10 +128,10 @@ namespace GalaxyatWar
                 {
                     foreach (var neighbor in systemStatus.neighborSystems.Keys)
                     {
-                        if (!Mod.Globals.Settings.ImmuneToWar.Contains(neighbor) && !Mod.Globals.Settings.DefensiveFactions.Contains(neighbor) &&
+                        if (!Mod.Settings.ImmuneToWar.Contains(neighbor) && !Mod.Settings.DefensiveFactions.Contains(neighbor) &&
                             !Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(systemStatus.name))
                         {
-                            var pushFactor = Mod.Globals.Settings.APRPush * Mod.Globals.Rng.Next(1, Mod.Globals.Settings.APRPushRandomizer + 1);
+                            var pushFactor = Mod.Settings.APRPush * Mod.Globals.Rng.Next(1, Mod.Settings.APRPushRandomizer + 1);
                             systemStatus.influenceTracker[neighbor] += systemStatus.neighborSystems[neighbor] * pushFactor;
                         }
                     }
@@ -141,10 +141,10 @@ namespace GalaxyatWar
                 if (systemStatus.owner != systemStatus.OriginalOwner)
                     systemStatus.influenceTracker[systemStatus.OriginalOwner] *= 0.10f;
 
-                var pirateSystemFlagValue = Mod.Globals.Settings.PirateSystemFlagValue;
+                var pirateSystemFlagValue = Mod.Settings.PirateSystemFlagValue;
 
-                if (Mod.Globals.Settings.ISMCompatibility)
-                    pirateSystemFlagValue = Mod.Globals.Settings.PirateSystemFlagValue_ISM;
+                if (Mod.Settings.ISMCompatibility)
+                    pirateSystemFlagValue = Mod.Settings.PirateSystemFlagValue_ISM;
 
                 var totalPirates = systemStatus.PirateActivity * systemStatus.TotalResources / 100;
 

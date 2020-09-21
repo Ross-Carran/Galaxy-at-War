@@ -68,7 +68,7 @@ namespace GalaxyatWar
                 var width = topRight.x - bottomLeft.x;
                 var height = topRight.y - bottomLeft.y;
 
-                var scale = Mathf.Min(Mathf.Min(width, height) * Mod.Globals.Settings.LogoScalar, Mod.Globals.Settings.LogoMaxSize);
+                var scale = Mathf.Min(Mathf.Min(width, height) * Mod.Settings.LogoScalar, Mod.Settings.LogoMaxSize);
                 logo.transform.localScale = new Vector3(scale, scale);
             }
         }

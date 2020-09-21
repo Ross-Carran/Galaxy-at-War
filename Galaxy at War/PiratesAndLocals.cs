@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using UnityEngine;
 // ReSharper disable InconsistentNaming
 // ReSharper disable ClassNeverInstantiated.Global
@@ -61,7 +60,7 @@ namespace GalaxyatWar
 
                 var attackResources = warFaction.AttackResources;
 
-                if (Mod.Globals.Settings.DefendersUseARforDR && Mod.Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
+                if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
                     attackResources = warFaction.DefensiveResources;
 
                 var defenseCost = Mathf.Min(PAChange * system.TotalResources / 100, warFaction.AttackResources * 0.01f);
@@ -70,7 +69,7 @@ namespace GalaxyatWar
                 {
                     PAChange = Math.Min(PAChange, system.PirateActivity);
                     system.PirateActivity -= PAChange;
-                    if (Mod.Globals.Settings.DefendersUseARforDR && Mod.Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
+                    if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
                         warFaction.DR_Against_Pirates += defenseCost;
                     else
                         warFaction.AR_Against_Pirates += defenseCost;
@@ -80,7 +79,7 @@ namespace GalaxyatWar
                 {
                     PAChange = Math.Min(attackResources, system.PirateActivity);
                     system.PirateActivity -= PAChange;
-                    if (Mod.Globals.Settings.DefendersUseARforDR && Mod.Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
+                    if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
                         warFaction.DR_Against_Pirates += defenseCost;
                     else
                         warFaction.AR_Against_Pirates += defenseCost;
@@ -112,12 +111,12 @@ namespace GalaxyatWar
 
                 var warFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == system.owner);
                 var warFARChange = system.AttackResources * system.PirateActivity / 100;
-                if (Mod.Globals.Settings.DefendersUseARforDR && Mod.Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
+                if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
                     warFaction.PirateDRLoss += warFARChange;
                 else
                     warFaction.PirateARLoss += warFARChange;
 
-                if (Mod.Globals.Settings.DefendersUseARforDR && Mod.Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
+                if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
                     warFaction.DefensiveResources -= warFARChange;
                 else
                     warFaction.AttackResources -= warFARChange;
@@ -135,11 +134,11 @@ namespace GalaxyatWar
             {
                 var systemStatus = Mod.Globals.WarStatusTracker.systems.GetRandomElement();
                 if (systemStatus.owner == "NoFaction" ||
-                    Mod.Globals.Settings.ImmuneToWar.Contains(systemStatus.owner) ||
+                    Mod.Settings.ImmuneToWar.Contains(systemStatus.owner) ||
                     Mod.Globals.WarStatusTracker.HotBox.Contains(systemStatus.name) ||
                     Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(systemStatus.name) ||
                     Mod.Globals.WarStatusTracker.HyadesRimGeneralPirateSystems.Contains(systemStatus.name) ||
-                    Mod.Globals.Settings.HyadesPirates.Contains(systemStatus.owner))
+                    Mod.Settings.HyadesPirates.Contains(systemStatus.owner))
                 {
                     systemStatus.PirateActivity = 0;
                     continue;

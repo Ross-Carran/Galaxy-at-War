@@ -26,13 +26,13 @@ namespace GalaxyatWar
             var total = tempTargets.Values.Sum();
             var attackResources = warFaction.AttackResources - warFaction.AR_Against_Pirates;
             if (warFaction.ComstarSupported)
-                attackResources += Mod.Globals.Settings.GaW_Police_ARBonus;
+                attackResources += Mod.Settings.GaW_Police_ARBonus;
             warFaction.AR_Against_Pirates = 0;
-            if (Mod.Globals.Settings.AggressiveToggle && !Mod.Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
+            if (Mod.Settings.AggressiveToggle && !Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
                 attackResources += Mod.Globals.Sim.Constants.Finances.LeopardBaseMaintenanceCost;
 
-            attackResources = attackResources * (1 + warFaction.DaysSinceSystemAttacked * Mod.Globals.Settings.AResourceAdjustmentPerCycle / 100);
-            attackResources += attackResources * (float) (Mod.Globals.Rng.Next(-1, 1) * Mod.Globals.Settings.ResourceSpread);
+            attackResources = attackResources * (1 + warFaction.DaysSinceSystemAttacked * Mod.Settings.AResourceAdjustmentPerCycle / 100);
+            attackResources += attackResources * (float) (Mod.Globals.Rng.Next(-1, 1) * Mod.Settings.ResourceSpread);
             foreach (var rfact in tempTargets.Keys)
             {
                 warFar.Add(rfact, tempTargets[rfact] * attackResources / total);
@@ -79,7 +79,7 @@ namespace GalaxyatWar
                     }
 
                     //Find most valuable target for attacking for later. Used in HotSpots.
-                    if (hatred >= Mod.Globals.Settings.PriorityHatred &&
+                    if (hatred >= Mod.Settings.PriorityHatred &&
                         system.DifficultyRating <= maxContracts &&
                         system.DifficultyRating >= maxContracts - 4)
                     {
@@ -107,7 +107,7 @@ namespace GalaxyatWar
                         continue;
                     }
 
-                    var arFactor = Random.Range(Mod.Globals.Settings.MinimumResourceFactor, Mod.Globals.Settings.MaximumResourceFactor);
+                    var arFactor = Random.Range(Mod.Settings.MinimumResourceFactor, Mod.Settings.MaximumResourceFactor);
                     var spendAR = Mathf.Min(startingTargetFar * arFactor, targetFar);
                     spendAR = spendAR < 1 ? 1 : Math.Max(1 * Mod.Globals.SpendFactor, spendAR * Mod.Globals.SpendFactor);
                     var maxValueList = system.influenceTracker.Values.OrderByDescending(x => x).ToList();
@@ -146,14 +146,14 @@ namespace GalaxyatWar
             var faction = warFaction.faction;
             var defensiveResources = warFaction.DefensiveResources + warFaction.DR_Against_Pirates;
             if (warFaction.ComstarSupported)
-                defensiveResources += Mod.Globals.Settings.GaW_Police_DRBonus;
+                defensiveResources += Mod.Settings.GaW_Police_DRBonus;
             warFaction.DR_Against_Pirates = 0;
-            if (Mod.Globals.Settings.AggressiveToggle && Mod.Globals.Settings.DefensiveFactions.Contains(warFaction.faction))
+            if (Mod.Settings.AggressiveToggle && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
                 defensiveResources += Mod.Globals.Sim.Constants.Finances.LeopardBaseMaintenanceCost;
-            var defensiveCorrection = defensiveResources * (100 * Mod.Globals.Settings.GlobalDefenseFactor -
-                                                            Mod.Globals.Settings.DResourceAdjustmentPerCycle * warFaction.DaysSinceSystemLost) / 100;
+            var defensiveCorrection = defensiveResources * (100 * Mod.Settings.GlobalDefenseFactor -
+                                                            Mod.Settings.DResourceAdjustmentPerCycle * warFaction.DaysSinceSystemLost) / 100;
             defensiveResources = Math.Max(defensiveResources, defensiveCorrection);
-            defensiveResources += defensiveResources * (float) (Mod.Globals.Rng.Next(-1, 1) * Mod.Globals.Settings.ResourceSpread);
+            defensiveResources += defensiveResources * (float) (Mod.Globals.Rng.Next(-1, 1) * Mod.Settings.ResourceSpread);
             var startingDefensiveResources = defensiveResources;
             var map = new Dictionary<string, SystemStatus>();
             foreach (var defenseTarget in warFaction.defenseTargets.Distinct())
@@ -166,7 +166,7 @@ namespace GalaxyatWar
             {
                 var highest = 0f;
                 var highestFaction = faction;
-                var drFactor = Random.Range(Mod.Globals.Settings.MinimumResourceFactor, Mod.Globals.Settings.MaximumResourceFactor);
+                var drFactor = Random.Range(Mod.Settings.MinimumResourceFactor, Mod.Settings.MaximumResourceFactor);
                 var spendDr = Mathf.Min(startingDefensiveResources * drFactor, defensiveResources);
                 spendDr = spendDr < 1 ? 1 : Math.Max(1 * Mod.Globals.SpendFactor, spendDr * Mod.Globals.SpendFactor);
 
@@ -220,9 +220,9 @@ namespace GalaxyatWar
                 else
                 {
                     var diffRes = systemStatus.influenceTracker[highestFaction] / total - systemStatus.influenceTracker[faction] / total;
-                    var bonusDefense = spendDr + (diffRes * total - Mod.Globals.Settings.TakeoverThreshold / 100 * total) / (Mod.Globals.Settings.TakeoverThreshold / 100 + 1);
+                    var bonusDefense = spendDr + (diffRes * total - Mod.Settings.TakeoverThreshold / 100 * total) / (Mod.Settings.TakeoverThreshold / 100 + 1);
                     //LogDebug(bonusDefense);
-                    if (100 * diffRes > Mod.Globals.Settings.TakeoverThreshold)
+                    if (100 * diffRes > Mod.Settings.TakeoverThreshold)
                         if (defensiveResources >= bonusDefense)
                         {
                             systemStatus.influenceTracker[faction] += bonusDefense;

@@ -140,7 +140,7 @@ namespace GalaxyatWar
             foreach (var tracker in Mod.Globals.WarStatusTracker.deathListTracker.Where(x => !Mod.Settings.DefensiveFactions.Contains(x.faction)))
             {
                 if (!Mod.Settings.FactionNames.ContainsKey(tracker.faction) || Mod.Settings.HyadesNeverControl.Contains(tracker.faction)
-                                                                                || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(tracker.faction))
+                                                                            || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(tracker.faction))
                 {
                     LogDebug($"faction {tracker.faction} doesn't exist in Mod.Mod.Settings.FactionNames, skipping...");
                     continue;
@@ -168,7 +168,7 @@ namespace GalaxyatWar
                 foreach (var enemy in tracker.Enemies)
                 {
                     if (!Mod.Settings.FactionNames.ContainsKey(enemy) || Mod.Settings.HyadesNeverControl.Contains(enemy)
-                                                                          || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(enemy))
+                                                                      || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(enemy))
                     {
                         LogDebug("Mod.Mod.Settings.FactionNames doesn't have " + enemy + " skipping...");
                         continue;
@@ -184,7 +184,7 @@ namespace GalaxyatWar
                 foreach (var ally in tracker.Allies)
                 {
                     if (!Mod.Settings.FactionNames.ContainsKey(ally) || Mod.Settings.HyadesNeverControl.Contains(ally)
-                                                                         || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(ally))
+                                                                     || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(ally))
                     {
                         LogDebug("Mod.Mod.Settings.FactionNames doesn't have " + ally + " skipping...");
                         continue;
@@ -218,6 +218,11 @@ namespace GalaxyatWar
         {
             public static void Postfix(SimGameState __instance)
             {
+                if (Mod.Globals.WarStatusTracker != null)
+                {
+                    DeploymentIndicator.SetDeploymentIndicator(Mod.Globals.WarStatusTracker.Deployment);
+                }
+
                 if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                 {
                     return;
@@ -352,25 +357,25 @@ namespace GalaxyatWar
         }
 
         // makes the starmap shows priority contracts when not initialized
-       [HarmonyPatch(typeof(StarmapScreen), "RefreshStarmap")]
-       public static class StarmapScreen_RefreshStarmap__Patch
-       {
-           public static void Prefix()
-           {
-               LogDebug($"RefreshStarmap");
-               var sim = UnityGameInstance.BattleTechGame.Simulation;
-               if (Mod.Globals.WarStatusTracker == null || sim.IsCampaign && !sim.CompanyTags.Contains("story_complete"))
-                   return;
-           
-               if (Mod.Globals.WarStatusTracker != null && !Mod.Globals.WarStatusTracker.StartGameInitialized)
-               {
-                   LogDebug($"Refreshing contracts at RefreshStarmap. ({Mod.Globals.Sim.CurSystem.Name})");
-                   var cmdCenter = UnityGameInstance.BattleTechGame.Simulation.RoomManager.CmdCenterRoom;
-                   sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
-                   Mod.Globals.WarStatusTracker.StartGameInitialized = true;
-               }
-           }
-       }
+        [HarmonyPatch(typeof(StarmapScreen), "RefreshStarmap")]
+        public static class StarmapScreen_RefreshStarmap__Patch
+        {
+            public static void Prefix()
+            {
+                //LogDebug($"RefreshStarmap");
+                var sim = UnityGameInstance.BattleTechGame.Simulation;
+                if (Mod.Globals.WarStatusTracker == null || sim.IsCampaign && !sim.CompanyTags.Contains("story_complete"))
+                    return;
+
+                if (Mod.Globals.WarStatusTracker != null && !Mod.Globals.WarStatusTracker.StartGameInitialized)
+                {
+                    LogDebug($"Refreshing contracts at RefreshStarmap. ({Mod.Globals.Sim.CurSystem.Name})");
+                    var cmdCenter = UnityGameInstance.BattleTechGame.Simulation.RoomManager.CmdCenterRoom;
+                    sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+                    Mod.Globals.WarStatusTracker.StartGameInitialized = true;
+                }
+            }
+        }
 
         [HarmonyPatch(typeof(StarmapRenderer), "RefreshSystems")]
         public static class StarmapRendererRefreshSystemsPatch

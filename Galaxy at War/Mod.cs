@@ -312,10 +312,10 @@ namespace GalaxyatWar
                             }
                             else
                             {
-                                LogDebug($"ComStar Bulletin: Galaxy at War {__instance.CurSystem.Name} taken!  {Settings.FactionNames[Globals.TeamFaction]} conquered from {Settings.FactionNames[oldOwner]}");
+                                LogDebug($"ComStar Bulletin: Galaxy at War!  {__instance.CurSystem.Name} taken!\n{Settings.FactionNames[oldOwner]} conquered by {Settings.FactionNames[Globals.TeamFaction]}");
                                 ChangeSystemOwnership(warSystem.starSystem, Globals.TeamFaction, false);
                                 Globals.SimGameInterruptManager.QueueGenericPopup_NonImmediate(
-                                    $"ComStar Bulletin: Galaxy at War {__instance.CurSystem.Name} taken!", $"{Settings.FactionNames[Globals.TeamFaction]} conquered from {Settings.FactionNames[oldOwner]}", true, null);
+                                    "ComStar Bulletin:  Galaxy at War!", $"{__instance.CurSystem.Name} taken!\n{Settings.FactionNames[oldOwner]} conquered by {Settings.FactionNames[Globals.TeamFaction]}", true, null);
                                 if (Settings.HyadesRimCompatible && Globals.WarStatusTracker.InactiveTHRFactions.Contains(Globals.TeamFaction))
                                     Globals.WarStatusTracker.InactiveTHRFactions.Remove(Globals.TeamFaction);
                             }

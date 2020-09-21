@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using BattleTech;
 using BattleTech.Framework;
@@ -25,7 +26,13 @@ namespace GalaxyatWar
         {
             private static void Postfix()
             {
-                Globals.ModInitialized = false;
+                // no action unless the mod's already set itself up before
+                if (Mod.Globals.ModInitialized)
+                {
+                    Mod.Globals = new Globals();
+                    CopySettingsToState();
+                    LogDebug("State reset.");
+                }
             }
         }
 
@@ -35,16 +42,17 @@ namespace GalaxyatWar
             private static void Postfix(Starmap __instance)
             {
                 LogDebug("PopulateMap");
-                if (Globals.ModInitialized)
+                if (Mod.Globals.ModInitialized)
                 {
                     return;
                 }
 
-                Globals.Sim = __instance.sim;
-                Globals.SimGameInterruptManager = Globals.Sim.InterruptQueue;
-                Globals.GaWSystems = Globals.Sim.StarSystems.Where(x =>
-                    !Globals.Settings.ImmuneToWar.Contains(x.OwnerValue.Name)).ToList();
-                if (Globals.Sim.IsCampaign && !Globals.Sim.CompanyTags.Contains("story_complete"))
+                LogDebug("Initializing...");
+                Mod.Globals.Sim = __instance.sim;
+                Mod.Globals.SimGameInterruptManager = Mod.Globals.Sim.InterruptQueue;
+                Mod.Globals.GaWSystems = Mod.Globals.Sim.StarSystems.Where(x =>
+                    !Mod.Settings.ImmuneToWar.Contains(x.OwnerValue.Name)).ToList();
+                if (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                 {
                     LogDebug("Aborting GaW loading.");
                     return;
@@ -57,11 +65,11 @@ namespace GalaxyatWar
                     var font = (TMP_FontAsset) o;
                     if (font.name == "UnitedSansSemiExt-Light")
                     {
-                        Globals.Font = font;
+                        Mod.Globals.Font = font;
                     }
                 }
 
-                if (Globals.Settings.ResetMap)
+                if (Mod.Settings.ResetMap)
                 {
                     LogDebug("Resetting map due to settings.");
                     Spawn();
@@ -69,18 +77,15 @@ namespace GalaxyatWar
                 }
 
                 // is there a tag?  does it deserialize properly?
-                var gawTag = Globals.Sim.CompanyTags.FirstOrDefault(x => x.StartsWith("GalaxyAtWarSave"));
+                var gawTag = Mod.Globals.Sim.CompanyTags.FirstOrDefault(x => x.StartsWith("GalaxyAtWarSave"));
                 if (!string.IsNullOrEmpty(gawTag))
                 {
                     DeserializeWar();
                     // cleaning up old tag data
                     ValidateState();
-                    // copied from WarStatus - establish any systems that are new
-                    AddNewStarSystems();
 
                     // try to recover from negative DR
-                    // temporary code
-                    foreach (var systemStatus in Globals.WarStatusTracker.systems)
+                    foreach (var systemStatus in Mod.Globals.WarStatusTracker.systems)
                     {
                         if (systemStatus.DefenseResources <= 0)
                         {
@@ -90,7 +95,7 @@ namespace GalaxyatWar
                         }
                     }
 
-                    if (Globals.WarStatusTracker.systems.Count == 0)
+                    if (Mod.Globals.WarStatusTracker.systems.Count == 0)
                     {
                         LogDebug("Found tag but it's broken and being respawned:");
                         LogDebug($"{gawTag.Substring(0, 500)}");
@@ -99,42 +104,47 @@ namespace GalaxyatWar
                     else
                     {
                         RebuildState();
-                        Globals.WarStatusTracker.FirstTickInitialization = true;
+                        Mod.Globals.WarStatusTracker.FirstTickInitialization = true;
                     }
+
+                    // copied from WarStatus - establish any systems that are new
+                    AddNewStarSystems();
                 }
                 else
                 {
                     Spawn();
                 }
 
-                Globals.ModInitialized = true;
+                Mod.Globals.ModInitialized = true;
             }
 
+            // remove from the war any systems which are now immune
             private static void ValidateState()
             {
-                if (Globals.GaWSystems.Count < Globals.WarStatusTracker.systems.Count)
+                if (Mod.Globals.GaWSystems.Count < Mod.Globals.WarStatusTracker.systems.Count)
                 {
-                    for (var index = 0; index < Globals.WarStatusTracker.systems.Count; index++)
+                    for (var index = 0; index < Mod.Globals.WarStatusTracker.systems.Count; index++)
                     {
-                        var systemStatus = Globals.WarStatusTracker.systems[index];
-                        if (Globals.Settings.ImmuneToWar.Contains(systemStatus.OriginalOwner))
+                        var systemStatus = Mod.Globals.WarStatusTracker.systems[index];
+                        if (Mod.Settings.ImmuneToWar.Contains(systemStatus.OriginalOwner))
                         {
                             LogDebug($"Removed: {systemStatus.starSystem.Name,-15} -> Immune to war, owned by {systemStatus.starSystem.OwnerValue.Name}.");
-                            Globals.WarStatusTracker.systems.Remove(systemStatus);
+                            Mod.Globals.WarStatusTracker.systems.Remove(systemStatus);
                         }
                     }
                 }
 
-                foreach (var deathListTracker in Globals.WarStatusTracker.deathListTracker)
+                // remove from trackers any immune factions
+                foreach (var deathListTracker in Mod.Globals.WarStatusTracker.deathListTracker)
                 {
-                    if (deathListTracker.Enemies.Any(x => Globals.Settings.ImmuneToWar.Contains(x)))
+                    if (deathListTracker.Enemies.Any(x => Mod.Settings.ImmuneToWar.Contains(x)))
                     {
                         LogDebug($"Pruning immune factions from deathListTracker of {deathListTracker.faction}.");
                     }
 
                     for (var i = 0; i < deathListTracker.Enemies.Count; i++)
                     {
-                        if (Globals.Settings.ImmuneToWar.Contains(deathListTracker.Enemies[i]))
+                        if (Mod.Settings.ImmuneToWar.Contains(deathListTracker.Enemies[i]))
                         {
                             LogDebug($"Removing enemy {deathListTracker.Enemies[i]} from {deathListTracker.faction}.");
                             deathListTracker.Enemies.Remove(deathListTracker.Enemies[i]);
@@ -142,10 +152,11 @@ namespace GalaxyatWar
                     }
                 }
 
+                // doubtful this is needed...
                 var _ = new Dictionary<string, float>();
-                foreach (var kvp in Globals.WarStatusTracker.FullHomeContendedSystems)
+                foreach (var kvp in Mod.Globals.WarStatusTracker.FullHomeContendedSystems)
                 {
-                    if (!Globals.Settings.ImmuneToWar.Contains(kvp.Key))
+                    if (!Mod.Settings.ImmuneToWar.Contains(kvp.Key))
                     {
                         _.Add(kvp.Key, kvp.Value);
                     }
@@ -155,54 +166,56 @@ namespace GalaxyatWar
                     }
                 }
 
-                Globals.WarStatusTracker.FullHomeContendedSystems = _;
+                Mod.Globals.WarStatusTracker.FullHomeContendedSystems = _;
             }
 
+            // if the war is missing systems, add them
             private static void AddNewStarSystems()
             {
-                for (var index = 0; index < Globals.Sim.StarSystems.Count; index++)
+                for (var index = 0; index < Mod.Globals.Sim.StarSystems.Count; index++)
                 {
-                    var system = Globals.Sim.StarSystems[index];
-                    if (Globals.Settings.ImmuneToWar.Contains(Globals.Sim.StarSystems[index].OwnerValue.Name) ||
-                        Globals.WarStatusTracker.systems.Any(x => x.starSystem == system))
+                    var system = Mod.Globals.Sim.StarSystems[index];
+                    if (Mod.Settings.ImmuneToWar.Contains(Mod.Globals.Sim.StarSystems[index].OwnerValue.Name) ||
+                        Mod.Globals.WarStatusTracker.systems.Any(x => x.starSystem == system))
                     {
                         continue;
                     }
 
                     LogDebug($"Trying to add {system.Name}, owner {system.OwnerValue.Name}.");
                     var systemStatus = new SystemStatus(system, system.OwnerValue.Name);
-                    Globals.WarStatusTracker.systems.Add(systemStatus);
+                    Mod.Globals.WarStatusTracker.systems.Add(systemStatus);
                     if (system.Tags.Contains("planet_other_pirate") && !system.Tags.Contains("planet_region_hyadesrim"))
                     {
-                        Globals.WarStatusTracker.FullPirateSystems.Add(system.Name);
+                        Mod.Globals.WarStatusTracker.FullPirateSystems.Add(system.Name);
                         PiratesAndLocals.FullPirateListSystems.Add(systemStatus);
                     }
 
                     if (system.Tags.Contains("planet_region_hyadesrim") &&
-                        !Globals.WarStatusTracker.FlashpointSystems.Contains(system.Name) &&
+                        !Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(system.Name) &&
                         (system.OwnerValue.Name == "NoFaction" || system.OwnerValue.Name == "Locals"))
-                        Globals.WarStatusTracker.HyadesRimGeneralPirateSystems.Add(system.Name);
+                        Mod.Globals.WarStatusTracker.HyadesRimGeneralPirateSystems.Add(system.Name);
                 }
             }
 
             private static void Spawn()
             {
                 LogDebug("Spawning new instance.");
-                Globals.WarStatusTracker = new WarStatus();
+                Mod.Globals.WarStatusTracker = new WarStatus();
                 LogDebug("New global state created.");
                 // TODO is this value unchanging?  this is wrong if not
-                Globals.WarStatusTracker.systemsByResources =
-                    Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
-                if (!Globals.WarStatusTracker.StartGameInitialized)
+                Mod.Globals.WarStatusTracker.systemsByResources =
+                    Mod.Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
+                if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
                 {
-                    LogDebug($"Refreshing contracts at spawn ({Globals.Sim.CurSystem}).");
-                    var cmdCenter = Globals.Sim.RoomManager.CmdCenterRoom;
-                    Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
-                    Globals.WarStatusTracker.StartGameInitialized = true;
+                    LogDebug($"Refreshing contracts at spawn ({Mod.Globals.Sim.CurSystem.Name}).");
+                    var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
+                    Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+                    Mod.Globals.WarStatusTracker.StartGameInitialized = true;
                 }
 
                 SystemDifficulty();
-                Globals.WarStatusTracker.FirstTickInitialization = true;
+                Mod.Globals.WarStatusTracker.FirstTickInitialization = true;
+                Mod.Globals.WarStatusTracker.StartGameInitialized = false;
                 WarTick.Tick(true, true);
             }
         }
@@ -210,8 +223,9 @@ namespace GalaxyatWar
         private static void DeserializeWar()
         {
             LogDebug("DeserializeWar");
-            var tag = Globals.Sim.CompanyTags.First(x => x.StartsWith("GalaxyAtWarSave{")).Substring(15);
-            Globals.WarStatusTracker = JsonConvert.DeserializeObject<WarStatus>(tag);
+            var tag = Mod.Globals.Sim.CompanyTags.First(x => x.StartsWith("GalaxyAtWarSave{")).Substring(15);
+            //File.WriteAllText("mods/GalaxyAtWar/tag.txt", tag);
+            Mod.Globals.WarStatusTracker = JsonConvert.DeserializeObject<WarStatus>(tag);
             LogDebug($">>> Deserialization complete (Size after load: {tag.Length / 1024}kb)");
         }
 
@@ -221,13 +235,13 @@ namespace GalaxyatWar
             public static void Prefix(SimGameState __instance)
             {
                 LogDebug("Dehydrate");
-                Globals.Sim = __instance;
-                if (Globals.Sim.IsCampaign && !Globals.Sim.CompanyTags.Contains("story_complete"))
+                Mod.Globals.Sim = __instance;
+                if (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
-                if (Globals.WarStatusTracker == null)
+                if (Mod.Globals.WarStatusTracker == null)
                 {
-                    Globals.WarStatusTracker = new WarStatus();
+                    Mod.Globals.WarStatusTracker = new WarStatus();
                     SystemDifficulty();
                     WarTick.Tick(true, true);
                     SerializeWar();
@@ -237,20 +251,14 @@ namespace GalaxyatWar
                     ConvertToSave();
                     SerializeWar();
                 }
-
-                if (Globals.FirstDehydrate)
-                {
-                    Globals.FirstDehydrate = false;
-                    Globals.WarStatusTracker.StartGameInitialized = false;
-                }
             }
 
             public static void Postfix()
             {
-                if (Globals.Settings.CleanUpCompanyTag)
+                if (Mod.Settings.CleanUpCompanyTag)
                 {
-                    Globals.Sim.CompanyTags.Where(tag =>
-                        tag.StartsWith("GalaxyAtWar")).Do(x => Globals.Sim.CompanyTags.Remove(x));
+                    Mod.Globals.Sim.CompanyTags.Where(tag =>
+                        tag.StartsWith("GalaxyAtWar")).Do(x => Mod.Globals.Sim.CompanyTags.Remove(x));
                 }
             }
         }
@@ -258,10 +266,10 @@ namespace GalaxyatWar
         internal static void SerializeWar()
         {
             LogDebug("SerializeWar");
-            var gawTag = Globals.Sim.CompanyTags.FirstOrDefault(x => x.StartsWith("GalaxyAtWar"));
-            Globals.Sim.CompanyTags.Remove(gawTag);
-            gawTag = "GalaxyAtWarSave" + JsonConvert.SerializeObject(Globals.WarStatusTracker);
-            Globals.Sim.CompanyTags.Add(gawTag);
+            var gawTag = Mod.Globals.Sim.CompanyTags.FirstOrDefault(x => x.StartsWith("GalaxyAtWar"));
+            Mod.Globals.Sim.CompanyTags.Remove(gawTag);
+            gawTag = "GalaxyAtWarSave" + JsonConvert.SerializeObject(Mod.Globals.WarStatusTracker);
+            Mod.Globals.Sim.CompanyTags.Add(gawTag);
             LogDebug($">>> Serialization complete (object size: {gawTag.Length / 1024}kb)");
         }
 
@@ -271,38 +279,39 @@ namespace GalaxyatWar
             HotSpots.ExternalPriorityTargets.Clear();
             HotSpots.FullHomeContendedSystems.Clear();
             HotSpots.HomeContendedSystems.Clear();
-            var starSystemDictionary = Globals.Sim.StarSystemDictionary;
-            Globals.WarStatusTracker.systemsByResources =
-                Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
+            var starSystemDictionary = Mod.Globals.Sim.StarSystemDictionary;
+            // TODO make sure this is being updated elsewhere (should be but worth double-checking)
+            Mod.Globals.WarStatusTracker.systemsByResources =
+                Mod.Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
             SystemDifficulty();
 
             try
             {
-                if (Globals.Settings.ResetMap)
+                if (Mod.Settings.ResetMap)
                 {
-                    Globals.Sim.CompanyTags.Where(tag =>
-                        tag.StartsWith("GalaxyAtWar")).Do(x => Globals.Sim.CompanyTags.Remove(x));
+                    Mod.Globals.Sim.CompanyTags.Where(tag =>
+                        tag.StartsWith("GalaxyAtWar")).Do(x => Mod.Globals.Sim.CompanyTags.Remove(x));
                     return;
                 }
 
-                for (var i = 0; i < Globals.WarStatusTracker.systems.Count; i++)
+                for (var i = 0; i < Mod.Globals.WarStatusTracker.systems.Count; i++)
                 {
                     StarSystemDef systemDef;
-                    var system = Globals.WarStatusTracker.systems[i];
+                    var system = Mod.Globals.WarStatusTracker.systems[i];
                     if (starSystemDictionary.ContainsKey(system.CoreSystemID))
                     {
                         systemDef = starSystemDictionary[system.CoreSystemID].Def;
                     }
                     else
                     {
-                        LogDebug($"BOMB {system.name} not in StarSystemDictionary, removing it from WarStatus.systems");
-                        Globals.WarStatusTracker.systems.Remove(system);
+                        LogDebug($"BOMB {system.name} not in StarSystemDictionary, removing it from WarStatusTracker.systems");
+                        Mod.Globals.WarStatusTracker.systems.Remove(system);
                         continue;
                     }
 
                     var systemOwner = systemDef.OwnerValue.Name;
                     // needs to be refreshed since original declaration in Mod
-                    var ownerValue = Globals.FactionValues.Find(x => x.Name == system.owner);
+                    var ownerValue = Mod.Globals.FactionValues.Find(x => x.Name == system.owner);
                     systemDef.OwnerValue = ownerValue;
                     systemDef.factionShopOwnerID = system.owner;
                     RefreshContractsEmployersAndTargets(system);
@@ -319,57 +328,57 @@ namespace GalaxyatWar
                         if (systemDef.SystemShopItems.Count != 0)
                         {
                             var tempList = systemDef.SystemShopItems;
-                            tempList.Add(Globals.Settings.FactionShops[system.owner]);
+                            tempList.Add(Mod.Settings.FactionShops[system.owner]);
 
                             Traverse.Create(systemDef).Property("SystemShopItems").SetValue(systemDef.SystemShopItems);
                         }
 
                         if (systemDef.FactionShopItems != null)
                         {
-                            systemDef.FactionShopOwnerValue = Globals.FactionValues.Find(x => x.Name == system.owner);
+                            systemDef.FactionShopOwnerValue = Mod.Globals.FactionValues.Find(x => x.Name == system.owner);
                             systemDef.factionShopOwnerID = system.owner;
                             var factionShopItems = systemDef.FactionShopItems;
-                            if (factionShopItems.Contains(Globals.Settings.FactionShopItems[systemOwner]))
-                                factionShopItems.Remove(Globals.Settings.FactionShopItems[systemOwner]);
-                            factionShopItems.Add(Globals.Settings.FactionShopItems[system.owner]);
+                            if (factionShopItems.Contains(Mod.Settings.FactionShopItems[systemOwner]))
+                                factionShopItems.Remove(Mod.Settings.FactionShopItems[systemOwner]);
+                            factionShopItems.Add(Mod.Settings.FactionShopItems[system.owner]);
                             systemDef.FactionShopItems = factionShopItems;
                         }
                     }
                 }
 
-                foreach (var faction in Globals.WarStatusTracker.ExternalPriorityTargets.Keys)
+                foreach (var faction in Mod.Globals.WarStatusTracker.ExternalPriorityTargets.Keys)
                 {
                     HotSpots.ExternalPriorityTargets.Add(faction, new List<StarSystem>());
-                    foreach (var system in Globals.WarStatusTracker.ExternalPriorityTargets[faction])
+                    foreach (var system in Mod.Globals.WarStatusTracker.ExternalPriorityTargets[faction])
                         HotSpots.ExternalPriorityTargets[faction].Add(starSystemDictionary[system]);
                 }
 
-                foreach (var system in Globals.WarStatusTracker.FullHomeContendedSystems)
+                foreach (var system in Mod.Globals.WarStatusTracker.FullHomeContendedSystems)
                 {
                     HotSpots.FullHomeContendedSystems.Add(new KeyValuePair<StarSystem, float>(starSystemDictionary[system.Key], system.Value));
                 }
 
-                foreach (var system in Globals.WarStatusTracker.HomeContendedSystems)
+                foreach (var system in Mod.Globals.WarStatusTracker.HomeContendedSystems)
                 {
                     HotSpots.HomeContendedSystems.Add(starSystemDictionary[system]);
                 }
 
-                foreach (var starSystem in Globals.WarStatusTracker.FullPirateSystems)
+                foreach (var starSystem in Mod.Globals.WarStatusTracker.FullPirateSystems)
                 {
-                    PiratesAndLocals.FullPirateListSystems.Add(Globals.WarStatusTracker.systems.Find(x => x.name == starSystem));
+                    PiratesAndLocals.FullPirateListSystems.Add(Mod.Globals.WarStatusTracker.systems.Find(x => x.name == starSystem));
                 }
 
-                foreach (var deathListTracker in Globals.WarStatusTracker.deathListTracker)
+                foreach (var deathListTracker in Mod.Globals.WarStatusTracker.deathListTracker)
                 {
                     AdjustDeathList(deathListTracker, true);
                 }
 
-                foreach (var defensiveFaction in Globals.Settings.DefensiveFactions)
+                foreach (var defensiveFaction in Mod.Settings.DefensiveFactions)
                 {
-                    if (Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == defensiveFaction) == null)
+                    if (Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == defensiveFaction) == null)
                         continue;
 
-                    var targetFaction = Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == defensiveFaction);
+                    var targetFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == defensiveFaction);
 
                     if (targetFaction.AttackResources != 0)
                     {
@@ -378,9 +387,9 @@ namespace GalaxyatWar
                     }
                 }
 
-                foreach (var contract in Globals.Sim.CurSystem.activeSystemBreadcrumbs)
+                foreach (var contract in Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs)
                 {
-                    if (Globals.WarStatusTracker.DeploymentContracts.Contains(contract.Override.contractName))
+                    if (Mod.Globals.WarStatusTracker.DeploymentContracts.Contains(contract.Override.contractName))
                         contract.Override.contractDisplayStyle = ContractDisplayStyle.BaseCampaignStory;
                 }
             }
@@ -393,22 +402,22 @@ namespace GalaxyatWar
         public static void ConvertToSave()
         {
             LogDebug("ConvertToSave");
-            Globals.WarStatusTracker.ExternalPriorityTargets.Clear();
-            Globals.WarStatusTracker.FullHomeContendedSystems.Clear();
-            Globals.WarStatusTracker.HomeContendedSystems.Clear();
-            Globals.WarStatusTracker.FullPirateSystems.Clear();
+            Mod.Globals.WarStatusTracker.ExternalPriorityTargets.Clear();
+            Mod.Globals.WarStatusTracker.FullHomeContendedSystems.Clear();
+            Mod.Globals.WarStatusTracker.HomeContendedSystems.Clear();
+            Mod.Globals.WarStatusTracker.FullPirateSystems.Clear();
 
             foreach (var faction in HotSpots.ExternalPriorityTargets.Keys)
             {
-                Globals.WarStatusTracker.ExternalPriorityTargets.Add(faction, new List<string>());
+                Mod.Globals.WarStatusTracker.ExternalPriorityTargets.Add(faction, new List<string>());
                 foreach (var system in HotSpots.ExternalPriorityTargets[faction])
-                    Globals.WarStatusTracker.ExternalPriorityTargets[faction].Add(system.Def.CoreSystemID);
+                    Mod.Globals.WarStatusTracker.ExternalPriorityTargets[faction].Add(system.Def.CoreSystemID);
             }
 
             foreach (var system in HotSpots.FullHomeContendedSystems)
-                Globals.WarStatusTracker.FullHomeContendedSystems.Add(system.Key.Def.CoreSystemID, system.Value);
+                Mod.Globals.WarStatusTracker.FullHomeContendedSystems.Add(system.Key.Def.CoreSystemID, system.Value);
             foreach (var system in HotSpots.HomeContendedSystems)
-                Globals.WarStatusTracker.HomeContendedSystems.Add(system.Def.CoreSystemID);
+                Mod.Globals.WarStatusTracker.HomeContendedSystems.Add(system.Def.CoreSystemID);
         }
     }
 }

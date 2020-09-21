@@ -1,9 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
-using Harmony;
 using UnityEngine;
-using static GalaxyatWar.Globals;
 
 namespace GalaxyatWar
 {
@@ -12,13 +10,40 @@ namespace GalaxyatWar
         private static string logFilePath;
 
         private static string LogFilePath =>
-            logFilePath ?? (logFilePath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName + "/Galaxy-at-War.log");
+            logFilePath ??
+            (logFilePath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName + "/Galaxy-at-War.log");
 
-        public static void Error(Exception ex)
+        public static async void Error(Exception ex)
         {
             using (var writer = new StreamWriter(LogFilePath, true))
             {
-                writer.WriteLine($"{GetFormattedStartupTime()}  {ex}");
+                await writer.WriteLineAsync($"{GetFormattedStartupTime()}  {ex}");
+            }
+        }
+
+        public static async void LogDebug(object line)
+        {
+            if (!Mod.Settings.Debug) return;
+            using (var writer = new StreamWriter(LogFilePath, true))
+            {
+                await writer.WriteLineAsync($"{GetFormattedStartupTime()}  {line}");
+            }
+        }
+
+        public static async void Log(string line)
+        {
+            using (var writer = new StreamWriter(LogFilePath, true))
+            {
+                await writer.WriteLineAsync(line);
+            }
+        }
+
+        public static async void Clear()
+        {
+            if (!Mod.Settings.Debug) return;
+            using (var writer = new StreamWriter(LogFilePath, false))
+            {
+                await writer.WriteLineAsync($"{DateTime.Now.ToLongTimeString()} Galaxy-at-War Init");
             }
         }
 
@@ -27,46 +52,8 @@ namespace GalaxyatWar
         private static string GetFormattedStartupTime()
         {
             var value = TimeSpan.FromSeconds(Time.realtimeSinceStartup);
-            var formatted = string.Format(
-                "[{0:D2}:{1:D2}:{2:D2}.{3:D3}]",
-                value.Hours,
-                value.Minutes,
-                value.Seconds,
-                value.Milliseconds);
+            var formatted = $"[{value.Hours:D2}:{value.Minutes:D2}:{value.Seconds:D2}.{value.Milliseconds:D3}]";
             return formatted;
-        }
-
-        public static async void LogDebug(object line)
-        {
-            try
-            {
-                if (!Settings.Debug) return;
-                using (var writer = new StreamWriter(LogFilePath, true))
-                {
-                    await writer.WriteLineAsync($"{GetFormattedStartupTime()}  {line}");
-                }
-            }
-            catch (Exception ex)
-            {
-                FileLog.Log(ex.ToString());
-            }
-        }
-
-        public static void Log(string line)
-        {
-            using (var writer = new StreamWriter(LogFilePath, true))
-            {
-                writer.WriteLine(line);
-            }
-        }
-
-        public static void Clear()
-        {
-            if (!Settings.Debug) return;
-            using (var writer = new StreamWriter(LogFilePath, false))
-            {
-                writer.WriteLine($"{DateTime.Now.ToLongTimeString()} Galaxy-at-War Init");
-            }
         }
     }
 }

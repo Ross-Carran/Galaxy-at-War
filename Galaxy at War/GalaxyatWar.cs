@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using Harmony;
 using Newtonsoft.Json;
-using static GalaxyatWar.Globals;
 using static GalaxyatWar.Helpers;
 
 // ReSharper disable UnusedType.Global 
@@ -18,20 +17,19 @@ namespace GalaxyatWar
             // read settings
             try
             {
-                Settings = JsonConvert.DeserializeObject<ModSettings>(settings);
-                Settings.modDirectory = modDir;
+                Mod.Settings = JsonConvert.DeserializeObject<ModSettings>(settings);
+                Mod.Settings.modDirectory = modDir;
             }
             catch (Exception)
             {
-                Settings = new ModSettings();
+                Mod.Settings = new ModSettings();
             }
 
             Logger.Clear();
             Logger.LogDebug("GaW Starting up...");
-            
-            foreach (var value in Settings.GetType().GetFields())
+            foreach (var value in Mod.Settings.GetType().GetFields())
             {
-                var v = value.GetValue(Settings);
+                var v = value.GetValue(Mod.Settings);
                 Logger.LogDebug($"{value.Name}: {v}");
                 if (v is List<string> list)
                 {
@@ -44,7 +42,7 @@ namespace GalaxyatWar
 
             var harmony = HarmonyInstance.Create("com.Same.BattleTech.GalaxyAtWar");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-           
+
             // blank the logfile
 
             CopySettingsToState();

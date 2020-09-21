@@ -1,6 +1,5 @@
 ﻿using System;
 using BattleTech;
-using static GalaxyatWar.Globals;
 
 namespace GalaxyatWar
 {
@@ -11,17 +10,17 @@ namespace GalaxyatWar
 
         public static void StartAdvancing(WorkOrderEntry entry)
         {
-            if (Sim.CurRoomState != DropshipLocation.SHIP)
+            if (Mod.Globals.Sim.CurRoomState != DropshipLocation.SHIP)
                 return;
 
             advancingTo = entry;
-            Sim.SetTimeMoving(true);
+            Mod.Globals.Sim.SetTimeMoving(true);
 
             // set the elapseTime variable so that the days pass faster
-            if (Math.Abs(Sim.Constants.Time.DayElapseTimeNormal - Settings.AdvanceToTaskTime) > 0.01)
+            if (Math.Abs(Mod.Globals.Sim.Constants.Time.DayElapseTimeNormal - Mod.Settings.AdvanceToTaskTime) > 0.01)
             {
-                oldDayElapseTimeNormal = Sim.Constants.Time.DayElapseTimeNormal;
-                Sim.Constants.Time.DayElapseTimeNormal = Settings.AdvanceToTaskTime;
+                oldDayElapseTimeNormal = Mod.Globals.Sim.Constants.Time.DayElapseTimeNormal;
+                Mod.Globals.Sim.Constants.Time.DayElapseTimeNormal = Mod.Settings.AdvanceToTaskTime;
             }
         }
 
@@ -32,8 +31,8 @@ namespace GalaxyatWar
 
             advancingTo = null;
 
-            Sim.Constants.Time.DayElapseTimeNormal = oldDayElapseTimeNormal;
-            Sim.SetTimeMoving(false);
+            Mod.Globals.Sim.Constants.Time.DayElapseTimeNormal = oldDayElapseTimeNormal;
+            Mod.Globals.Sim.SetTimeMoving(false);
         }
 
         public static void OnDayAdvance()
@@ -41,7 +40,7 @@ namespace GalaxyatWar
             if (advancingTo == null)
                 return;
 
-            var activeItems = TaskTimelineWidget.ActiveItems;
+            var activeItems = Mod.Globals.TaskTimelineWidget.ActiveItems;
 
             // if timeline doesn't contain advancingTo or advancingTo is over
             if (!activeItems.ContainsKey(advancingTo) || advancingTo.IsCostPaid())

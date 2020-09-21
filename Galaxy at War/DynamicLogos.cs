@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using BattleTech;
 using UnityEngine;
-using static GalaxyatWar.Globals;
 
 namespace GalaxyatWar
 {
@@ -13,7 +12,7 @@ namespace GalaxyatWar
             var logos = new Dictionary<FactionValue, GameObject>();
             foreach (var faction in logoNames.Keys)
             {
-                logos.Add(FactionValues.Find(x => x.Name == faction), GameObject.Find(logoNames[faction]));
+                logos.Add(Mod.Globals.FactionValues.Find(x => x.Name == faction), GameObject.Find(logoNames[faction]));
             }
             
             foreach (var starNode in renderer.starmap.VisisbleSystem)
@@ -69,7 +68,7 @@ namespace GalaxyatWar
                 var width = topRight.x - bottomLeft.x;
                 var height = topRight.y - bottomLeft.y;
 
-                var scale = Mathf.Min(Mathf.Min(width, height) * Settings.LogoScalar, Settings.LogoMaxSize);
+                var scale = Mathf.Min(Mathf.Min(width, height) * Mod.Settings.LogoScalar, Mod.Settings.LogoMaxSize);
                 logo.transform.localScale = new Vector3(scale, scale);
             }
         }

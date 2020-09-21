@@ -29,7 +29,7 @@ namespace GalaxyatWar
         {
             get
             {
-                return Globals.GaWSystems.Count(system => system.OwnerDef == Globals.Sim.factions[faction]);
+                return Mod.Globals.GaWSystems.Count(system => system.OwnerDef == Mod.Globals.Sim.factions[faction]);
             }
         }
 
@@ -43,7 +43,7 @@ namespace GalaxyatWar
 
         internal DeathListTracker DeathListTracker
         {
-            get => deathListTrackerBackingField ?? (deathListTrackerBackingField = Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction));
+            get => deathListTrackerBackingField ?? (deathListTrackerBackingField = Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction));
             set => deathListTrackerBackingField = value;
         }
 
@@ -65,7 +65,7 @@ namespace GalaxyatWar
             TotalSystemsChanged = 0;
             PirateARLoss = 0;
             PirateDRLoss = 0;
-            foreach (var startFaction in Globals.IncludedFactions)
+            foreach (var startFaction in Mod.Globals.IncludedFactions)
                 IncreaseAggression.Add(startFaction, false);
         }
     }

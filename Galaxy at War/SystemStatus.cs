@@ -47,7 +47,7 @@ namespace GalaxyatWar
         {
             get
             {
-                return starSystemBackingField ?? (starSystemBackingField = Globals.Sim.StarSystems.Find(s => s.Name == name));
+                return starSystemBackingField ?? (starSystemBackingField = Mod.Globals.Sim.StarSystems.Find(s => s.Name == name));
             }
             private set => starSystemBackingField = value;
         }
@@ -71,11 +71,11 @@ namespace GalaxyatWar
             BonusCBills = false;
             BonusSalvage = false;
             BonusXP = false;
-            if (system.Tags.Contains("planet_other_pirate") && !Globals.Settings.HyadesFlashpointSystems.Contains(name))
-                if (!Globals.Settings.ISMCompatibility)
-                    PirateActivity = Globals.Settings.StartingPirateActivity;
+            if (system.Tags.Contains("planet_other_pirate") && !Mod.Settings.HyadesFlashpointSystems.Contains(name))
+                if (!Mod.Settings.ISMCompatibility)
+                    PirateActivity = Mod.Settings.StartingPirateActivity;
                 else
-                    PirateActivity = Globals.Settings.StartingPirateActivity_ISM;
+                    PirateActivity = Mod.Settings.StartingPirateActivity_ISM;
             FindNeighbors();
             CalculateSystemInfluence();
             InitializeContracts();
@@ -86,7 +86,7 @@ namespace GalaxyatWar
             try
             {
                 neighborSystems.Clear();
-                var neighbors = Globals.Sim.Starmap.GetAvailableNeighborSystem(starSystem);
+                var neighbors = Mod.Globals.Sim.Starmap.GetAvailableNeighborSystem(starSystem);
                 foreach (var neighborSystem in neighbors)
                 {
                     if (neighborSystems.ContainsKey(neighborSystem.OwnerValue.Name))
@@ -105,7 +105,7 @@ namespace GalaxyatWar
         public void CalculateSystemInfluence()
         {
             influenceTracker.Clear();
-            if (!Globals.Settings.HyadesRimCompatible)
+            if (!Mod.Settings.HyadesRimCompatible)
             {
                 if (owner == "NoFaction")
                     influenceTracker.Add("NoFaction", 100);
@@ -114,8 +114,8 @@ namespace GalaxyatWar
 
                 if (owner != "NoFaction" && owner != "Locals")
                 {
-                    influenceTracker.Add(owner, Globals.Settings.DominantInfluence);
-                    var remainingInfluence = Globals.Settings.MinorInfluencePool;
+                    influenceTracker.Add(owner, Mod.Settings.DominantInfluence);
+                    var remainingInfluence = Mod.Settings.MinorInfluencePool;
 
                     if (!(neighborSystems.Keys.Count == 1 && neighborSystems.Keys.Contains(owner)) && neighborSystems.Keys.Count != 0)
                     {
@@ -127,7 +127,7 @@ namespace GalaxyatWar
                                 {
                                     var influenceDelta = neighborSystems[faction];
                                     remainingInfluence -= influenceDelta;
-                                    if (Globals.Settings.DefensiveFactions.Contains(faction))
+                                    if (Mod.Settings.DefensiveFactions.Contains(faction))
                                         continue;
                                     if (influenceTracker.ContainsKey(faction))
                                         influenceTracker[faction] += influenceDelta;
@@ -139,7 +139,7 @@ namespace GalaxyatWar
                     }
                 }
 
-                foreach (var faction in Globals.IncludedFactions)
+                foreach (var faction in Mod.Globals.IncludedFactions)
                 {
                     if (!influenceTracker.Keys.Contains(faction))
                         influenceTracker.Add(faction, 0);
@@ -165,28 +165,28 @@ namespace GalaxyatWar
                 {
                     foreach (var pirateFaction in starSystem.Def.ContractEmployerIDList)
                     {
-                        if (Globals.Settings.HyadesNeverControl.Contains(pirateFaction))
+                        if (Mod.Settings.HyadesNeverControl.Contains(pirateFaction))
                             continue;
 
                         if (!influenceTracker.Keys.Contains(pirateFaction))
-                            influenceTracker.Add(pirateFaction, Globals.Settings.MinorInfluencePool);
+                            influenceTracker.Add(pirateFaction, Mod.Settings.MinorInfluencePool);
                     }
 
                     foreach (var pirateFaction in starSystem.Def.ContractTargetIDList)
                     {
-                        if (Globals.Settings.HyadesNeverControl.Contains(pirateFaction))
+                        if (Mod.Settings.HyadesNeverControl.Contains(pirateFaction))
                             continue;
 
                         if (!influenceTracker.Keys.Contains(pirateFaction))
-                            influenceTracker.Add(pirateFaction, Globals.Settings.MinorInfluencePool);
+                            influenceTracker.Add(pirateFaction, Mod.Settings.MinorInfluencePool);
                     }
                 }
 
 
                 if (owner != "NoFaction" && owner != "Locals")
                 {
-                    influenceTracker.Add(owner, Globals.Settings.DominantInfluence);
-                    var remainingInfluence = Globals.Settings.MinorInfluencePool;
+                    influenceTracker.Add(owner, Mod.Settings.DominantInfluence);
+                    var remainingInfluence = Mod.Settings.MinorInfluencePool;
 
                     if (!(neighborSystems.Keys.Count == 1 && neighborSystems.Keys.Contains(owner)) && neighborSystems.Keys.Count != 0)
                     {
@@ -198,7 +198,7 @@ namespace GalaxyatWar
                                 {
                                     var influenceDelta = neighborSystems[faction];
                                     remainingInfluence -= influenceDelta;
-                                    if (Globals.Settings.DefensiveFactions.Contains(faction))
+                                    if (Mod.Settings.DefensiveFactions.Contains(faction))
                                         continue;
                                     if (influenceTracker.ContainsKey(faction))
                                         influenceTracker[faction] += influenceDelta;
@@ -210,7 +210,7 @@ namespace GalaxyatWar
                     }
                 }
 
-                foreach (var faction in Globals.IncludedFactions)
+                foreach (var faction in Mod.Globals.IncludedFactions)
                 {
                     if (!influenceTracker.Keys.Contains(faction))
                         influenceTracker.Add(faction, 0);
@@ -230,7 +230,7 @@ namespace GalaxyatWar
 
         public void InitializeContracts()
         {
-            if (Globals.Settings.HyadesRimCompatible && starSystem.Tags.Contains("planet_region_hyadesrim") && (owner == "NoFaction" || owner == "Locals" || Globals.Settings.HyadesFlashpointSystems.Contains(name)))
+            if (Mod.Settings.HyadesRimCompatible && starSystem.Tags.Contains("planet_region_hyadesrim") && (owner == "NoFaction" || owner == "Locals" || Mod.Settings.HyadesFlashpointSystems.Contains(name)))
                 return;
 
             var ContractEmployers = starSystem.Def.ContractEmployerIDList;
@@ -240,9 +240,9 @@ namespace GalaxyatWar
             ContractTargets.Clear();
             ContractEmployers.Add(owner);
 
-            foreach (var EF in Globals.Settings.DefensiveFactions)
+            foreach (var EF in Mod.Settings.DefensiveFactions)
             {
-                if (Globals.Settings.ImmuneToWar.Contains(EF))
+                if (Mod.Settings.ImmuneToWar.Contains(EF))
                     continue;
                 ContractTargets.Add(EF);
             }
@@ -252,12 +252,12 @@ namespace GalaxyatWar
 
             foreach (var systemNeighbor in neighborSystems.Keys)
             {
-                if (Globals.Settings.ImmuneToWar.Contains(systemNeighbor))
+                if (Mod.Settings.ImmuneToWar.Contains(systemNeighbor))
                     continue;
-                if (!ContractEmployers.Contains(systemNeighbor) && !Globals.Settings.DefensiveFactions.Contains(systemNeighbor))
+                if (!ContractEmployers.Contains(systemNeighbor) && !Mod.Settings.DefensiveFactions.Contains(systemNeighbor))
                     ContractEmployers.Add(systemNeighbor);
 
-                if (!ContractTargets.Contains(systemNeighbor) && !Globals.Settings.DefensiveFactions.Contains(systemNeighbor))
+                if (!ContractTargets.Contains(systemNeighbor) && !Mod.Settings.DefensiveFactions.Contains(systemNeighbor))
                     ContractTargets.Add(systemNeighbor);
             }
         }

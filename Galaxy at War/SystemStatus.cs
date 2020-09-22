@@ -41,6 +41,7 @@ namespace GalaxyatWar
         public string CoreSystemID;
         public int DeploymentTier = 0;
         public string OriginalOwner = null;
+        internal static Dictionary<string, SystemStatus> All = new Dictionary<string, SystemStatus>();
         private StarSystem starSystemBackingField;
 
         internal StarSystem starSystem

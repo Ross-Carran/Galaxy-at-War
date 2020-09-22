@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
 using BattleTech.Framework;
+using BattleTech.UI;
+using BattleTech.UI.TMProWrapper;
 using Harmony;
+using HBS.Extensions;
 using UnityEngine;
+using UnityEngine.UI;
 using static GalaxyatWar.Logger;
 
 // ReSharper disable StringLiteralTypo
@@ -600,7 +604,7 @@ namespace GalaxyatWar
         {
             var starSystem = systemStatus.starSystem;
             //LogDebug("RefreshContracts for " + starSystem.Name);
-            if (Mod.Globals.WarStatusTracker.HotBox.Contains(starSystem.Name) || 
+            if (Mod.Globals.WarStatusTracker.HotBox.Contains(starSystem.Name) ||
                 starSystem.Tags.Contains("planet_region_hyadesrim") &&
                 (starSystem.OwnerDef.Name == "Locals" || starSystem.OwnerDef.Name == "NoFaction"))
             {
@@ -698,6 +702,7 @@ namespace GalaxyatWar
             {
                 LogDebug("Empty influenceTracker.");
             }
+
             float maximumInfluence;
             if (piratesInvolved && defenseFaction == "AuriganPirates")
                 maximumInfluence = targetSystem.PirateActivity;
@@ -1125,5 +1130,6 @@ namespace GalaxyatWar
             const int variance = 2;
             return starSystem.Def.GetDifficulty(SimGameState.SimGameType.CAREER) + Mod.Globals.Rng.Next(-variance, variance + 1);
         }
+
     }
 }

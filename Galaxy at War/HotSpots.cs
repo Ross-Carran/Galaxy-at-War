@@ -127,11 +127,14 @@ namespace GalaxyatWar
 
                 foreach (var theFaction in Mod.Globals.IncludedFactions)
                 {
+                    // todo refactor this into a dict lookup and populate it properly
                     var deathListTracker = Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == theFaction);
                     if (deathListTracker == null)
                     {
-                        LogDebug($"No DeathListTracker for {theFaction}");
-                        continue;
+                        var _ = new DeathListTracker {faction = theFaction};
+                        Mod.Globals.WarStatusTracker.deathListTracker.Add(_);
+                        deathListTracker = _;
+                        LogDebug($"Created new DeathListTracker for {theFaction}");
                     }
 
                     AdjustDeathList(deathListTracker, true);
@@ -198,7 +201,7 @@ namespace GalaxyatWar
                             SystemBonuses(MainBCTarget);
 
                             var PrioritySystem = Mod.Globals.Sim.CurSystem.SystemBreadcrumbs.Find(x => x.TargetSystem == MainBCTarget.ID);
-                            Traverse.Create(PrioritySystem.Override).Field("contractDisplayStyle").SetValue(ContractDisplayStyle.BaseCampaignStory);
+                            PrioritySystem.Override.contractDisplayStyle = ContractDisplayStyle.BaseCampaignStory;
                             Mod.Globals.WarStatusTracker.DeploymentContracts.Add(PrioritySystem.Override.contractName);
                         }
                         else if (twiddle == -1 || MainBCTarget.OwnerValue.Name == Mod.Globals.Sim.CurSystem.OwnerValue.Name)
@@ -212,7 +215,7 @@ namespace GalaxyatWar
                             SystemBonuses(MainBCTarget);
 
                             var PrioritySystem = Mod.Globals.Sim.CurSystem.SystemBreadcrumbs.Find(x => x.TargetSystem == MainBCTarget.ID);
-                            Traverse.Create(PrioritySystem.Override).Field("contractDisplayStyle").SetValue(ContractDisplayStyle.BaseCampaignStory);
+                            PrioritySystem.Override.contractDisplayStyle = ContractDisplayStyle.BaseCampaignStory;
                             Mod.Globals.WarStatusTracker.DeploymentContracts.Add(PrioritySystem.Override.contractName);
                         }
 
@@ -776,10 +779,10 @@ namespace GalaxyatWar
         {
             private static bool Prefix(WorkOrderEntry entry)
             {
-                if (Mod.Globals.WarStatusTracker == null || (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete")))
+                if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return true;
 
-                if (!Mod.Globals.WarStatusTracker.JustArrived && (entry.ID.Equals("Escalation Days Remaining")) && entry.GetRemainingCost() != 0)
+                if (!Mod.Globals.WarStatusTracker.JustArrived && entry.ID.Equals("Escalation Days Remaining") && entry.GetRemainingCost() != 0)
                 {
                     return false;
                 }
@@ -791,43 +794,29 @@ namespace GalaxyatWar
         [HarmonyPatch(typeof(SimGameState), "OnBreadcrumbArrival")]
         public static class SimGameStateOnBreadcrumbArrivalPatch
         {
-            private static void Postfix(SimGameState __instance)
+            private static void Postfix()
             {
+                LogDebug("OnBreadcrumbArrival");
                 if (Mod.Globals.WarStatusTracker == null || (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete")))
                     return;
 
-                LogDebug("OnBreadcrumbArrival");
-                if (!__instance.ActiveTravelContract.IsPriorityContract)
+                Mod.Globals.WarStatusTracker.Escalation = true;
+                Mod.Globals.WarStatusTracker.EscalationOrder = new WorkOrderEntry_Notification(WorkOrderType.NotificationGeneric, "Escalation Days Remaining", "Escalation Days Remaining");
+                if (!Mod.Globals.WarStatusTracker.Deployment)
                 {
-                    LogDebug("Is not a priority contract.");
-                    if (!Mod.Globals.WarStatusTracker.Deployment)
-                    {
-                        LogDebug("Is not a deployment.");
-                        Mod.Globals.WarStatusTracker.Escalation = true;
-                        Mod.Globals.WarStatusTracker.EscalationDays = Mod.Settings.EscalationDays;
-                        Mod.Globals.WarStatusTracker.EscalationOrder = new WorkOrderEntry_Notification(WorkOrderType.NotificationGeneric, "Escalation Days Remaining", "Escalation Days Remaining");
-                        Mod.Globals.WarStatusTracker.EscalationOrder.SetCost(Mod.Globals.WarStatusTracker.EscalationDays);
-                        __instance.RoomManager.AddWorkQueueEntry(Mod.Globals.WarStatusTracker.EscalationOrder);
-                        __instance.RoomManager.SortTimeline();
-                        __instance.RoomManager.RefreshTimeline(false);
-                    }
-                    else
-                    {
-                        LogDebug("Is something else.");
-                        var rand = new Random();
-                        Mod.Globals.WarStatusTracker.EscalationDays = rand.Next(Mod.Settings.DeploymentMinDays, Mod.Settings.DeploymentMaxDays + 1);
-                        if (Mod.Globals.WarStatusTracker.EscalationDays < Mod.Settings.DeploymentRerollBound * Mod.Globals.WarStatusTracker.EscalationDays ||
-                            Mod.Globals.WarStatusTracker.EscalationDays > (1 - Mod.Settings.DeploymentRerollBound) * Mod.Globals.WarStatusTracker.EscalationDays)
-                            Mod.Globals.WarStatusTracker.EscalationDays = rand.Next(Mod.Settings.DeploymentMinDays, Mod.Settings.DeploymentMaxDays + 1);
-
-                        Mod.Globals.WarStatusTracker.Escalation = true;
-                        Mod.Globals.WarStatusTracker.EscalationOrder = new WorkOrderEntry_Notification(WorkOrderType.NotificationGeneric, "Escalation Days Remaining", "Forced Deployment Mission");
-                        Mod.Globals.WarStatusTracker.EscalationOrder.SetCost(Mod.Globals.WarStatusTracker.EscalationDays);
-                        __instance.RoomManager.AddWorkQueueEntry(Mod.Globals.WarStatusTracker.EscalationOrder);
-                        __instance.RoomManager.SortTimeline();
-                        __instance.RoomManager.RefreshTimeline(false);
-                    }
+                    LogDebug("Not deployment.");
+                    Mod.Globals.WarStatusTracker.EscalationDays = Mod.Settings.EscalationDays;
                 }
+                else
+                {
+                    LogDebug("Is deployment.");
+                    Mod.Globals.Sim.CurSystem.activeSystemContracts.Clear();
+                }
+
+                Mod.Globals.WarStatusTracker.EscalationOrder.SetCost(Mod.Globals.WarStatusTracker.EscalationDays);
+                Mod.Globals.Sim.RoomManager.AddWorkQueueEntry(Mod.Globals.WarStatusTracker.EscalationOrder);
+                Mod.Globals.Sim.RoomManager.SortTimeline();
+                Mod.Globals.Sim.RoomManager.RefreshTimeline(false);
             }
         }
 
@@ -844,7 +833,7 @@ namespace GalaxyatWar
 
             //        SimGameState Sim = (SimGameState)AccessTools.Property(typeof(SGContractsWidget), "Sim").GetValue(__instance, null);
 
-            //        if (__instance.SelectedContract.Override.contractDisplayStyle == ContractDisplayStyle.BaseCampaignStory)
+            //        if (__instance.SelectedContract.Override.contractDisplayStyle == ContractDisplayStyle.BaseCampaignNormal)
             //        {
             //            string message = "Commander, this contract will bring us right to the front lines. If we accept it, we will be forced to take missions when our employer needs us to simultaneously attack in support of their war effort. We will be commited to this Deployment until the system is taken or properly defended and will lose significant reputation if we end up backing out before the job is done. But, oh man, they will certainly reward us well if their operation is ultimately successful! This Deployment may require missions to be done without time between them for repairs or to properly rest our pilots. I stronfgety encourage you to only accept this arrangement if you think we're up to it.";
             //            PauseNotification.Show("Deployment", message,
@@ -1113,6 +1102,12 @@ namespace GalaxyatWar
                     //}
                 }
 
+                if (Mod.Globals.WarStatusTracker.Deployment && Mod.Globals.Sim.ActiveTravelContract != null)
+                {
+                    Mod.Globals.Sim.CurSystem.activeSystemContracts.Clear();
+                    Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.RemoveAll(x => x != Mod.Globals.Sim.ActiveTravelContract);
+                }
+
                 LogDebug("HoldContracts");
                 Mod.Globals.HoldContracts = true;
             }
@@ -1132,7 +1127,7 @@ namespace GalaxyatWar
                     {
                         var message = "Commander, this contract will bring us right to the front lines. If we accept it, we will be forced to take missions when our employer needs us to simultaneously attack in support of their war effort. We will be committed to this Deployment until the system is taken or properly defended and will lose significant reputation if we end up backing out before the job is done. But, oh man, they will certainly reward us well if their operation is ultimately successful! This Deployment may require missions to be done without time between them for repairs or to properly rest our pilots. I strongly encourage you to only accept this arrangement if you think we're up to it.";
                         PauseNotification.Show("Deployment", message,
-                            Mod.Globals.Sim.GetCrewPortrait(SimGameCrew.Crew_Darius), string.Empty, true, delegate { __instance.NegotiateContract(__instance.SelectedContract); }, "Do it anyways", null, "Cancel");
+                            Mod.Globals.Sim.GetCrewPortrait(SimGameCrew.Crew_Darius), string.Empty, true, delegate { __instance.NegotiateContract(__instance.SelectedContract); }, "Do it anyway", null, "Cancel");
                         return false;
                     }
 

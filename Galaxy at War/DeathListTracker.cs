@@ -10,6 +10,7 @@ namespace GalaxyatWar
         public Dictionary<string, float> deathList = new Dictionary<string, float>();
         public List<string> Enemies => deathList.Where(x => x.Value >= 75).Select(x => x.Key).ToList();
         public List<string> Allies => deathList.Where(x => x.Value <= 25).Select(x => x.Key).ToList();
+        internal static Dictionary<string, DeathListTracker> All = new Dictionary<string, DeathListTracker>();
         private WarFaction warFactionBackingField;
 
         internal WarFaction WarFaction
@@ -30,9 +31,9 @@ namespace GalaxyatWar
         public DeathListTracker(string faction)
         {
             Logger.LogDebug("DeathListTracker ctor: " + faction);
-
             this.faction = faction;
             var factionDef = Mod.Globals.Sim.GetFactionDef(faction);
+            All.Add(faction, this);
 
             // TODO comment this
             foreach (var includedFaction in Mod.Globals.IncludedFactions)

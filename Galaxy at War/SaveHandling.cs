@@ -58,6 +58,16 @@ namespace GalaxyatWar
                     return;
                 }
 
+                PopulateLookupMaps();
+                foreach (var warFaction in WarFaction.All.Values)
+                {
+                    if (warFaction.DeathListTracker == null)
+                    {
+                        LogDebug($"Rebuilding missing DeathListTracker for {warFaction.faction}");
+                        warFaction.DeathListTracker = new DeathListTracker {faction = warFaction.faction};
+                    }
+                }
+
                 // thanks to mpstark for this
                 var fonts = Resources.FindObjectsOfTypeAll(typeof(TMP_FontAsset));
                 foreach (var o in fonts)
@@ -83,6 +93,7 @@ namespace GalaxyatWar
                     DeserializeWar();
                     // cleaning up old tag data
                     ValidateState();
+                    LogDebug(Mod.Globals.WarStatusTracker.Deployment);
 
                     // try to recover from negative DR
                     foreach (var systemStatus in Mod.Globals.WarStatusTracker.systems)
@@ -118,9 +129,44 @@ namespace GalaxyatWar
                 Mod.Globals.ModInitialized = true;
             }
 
+            private static void PopulateLookupMaps()
+            {
+                if (WarFaction.All.Count < Mod.Settings.IncludedFactions.Count)
+                {
+                    WarFaction.All = new Dictionary<string, WarFaction>();
+                    foreach (var warFaction in Mod.Globals.WarStatusTracker.warFactionTracker)
+                    {
+                        WarFaction.All.Add(warFaction.faction, warFaction);
+                    }
+                }
+
+                if (DeathListTracker.All.Count < Mod.Settings.IncludedFactions.Count)
+                {
+                    DeathListTracker.All = new Dictionary<string, DeathListTracker>();
+                    foreach (var deathListTracker in Mod.Globals.WarStatusTracker.deathListTracker)
+                    {
+                        DeathListTracker.All.Add(deathListTracker.faction, deathListTracker);
+                    }
+                }
+
+                if (SystemStatus.All.Count < Mod.Globals.GaWSystems.Count)
+                {
+                    SystemStatus.All = new Dictionary<string, SystemStatus>();
+                    foreach (var systemStatus in Mod.Globals.WarStatusTracker.systems)
+                    {
+                        SystemStatus.All.Add(systemStatus.name, systemStatus);
+                    }
+                }
+            }
+
             // remove from the war any systems which are now immune
             private static void ValidateState()
             {
+                // make sure DeathListTrackers exist (new factions added to existing save or something?)
+                foreach (var faction in Mod.Settings.IncludedFactions)
+                {
+                }
+
                 if (Mod.Globals.GaWSystems.Count < Mod.Globals.WarStatusTracker.systems.Count)
                 {
                     for (var index = 0; index < Mod.Globals.WarStatusTracker.systems.Count; index++)

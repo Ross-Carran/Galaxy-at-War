@@ -23,6 +23,7 @@ namespace GalaxyatWar
     {
         internal static Globals Globals = new Globals();
         internal static ModSettings Settings;
+        internal static DeploymentIndicator DeploymentIndicator;
 
         //Remove duplicates in the ContractEmployerIDList
         [HarmonyPatch(typeof(SimGameState), "GetValidParticipants")]

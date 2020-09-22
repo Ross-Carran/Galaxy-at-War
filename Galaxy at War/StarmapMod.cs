@@ -218,9 +218,9 @@ namespace GalaxyatWar
         {
             public static void Postfix(SimGameState __instance)
             {
-                if (Mod.Globals.WarStatusTracker != null)
+                if (Mod.Globals.WarStatusTracker != null && Mod.Globals.Sim.TravelState == SimGameTravelStatus.IN_SYSTEM && Mod.DeploymentIndicator != null)
                 {
-                    DeploymentIndicator.SetDeploymentIndicator(Mod.Globals.WarStatusTracker.Deployment);
+                    Mod.DeploymentIndicator.ShowDeploymentIndicator(Mod.Globals.WarStatusTracker.Deployment && Mod.Globals.WarStatusTracker.EscalationDays <= 0);
                 }
 
                 if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))

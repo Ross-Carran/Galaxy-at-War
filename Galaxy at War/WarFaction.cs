@@ -23,7 +23,8 @@ namespace GalaxyatWar
         public bool ComstarSupported = false;
         public float AR_PerPlanet = 0;
         public float DR_PerPlanet = 0;
-
+        internal static Dictionary<string, WarFaction> All = new Dictionary<string, WarFaction>();
+        
         // removing this will break saves 
         public int NumberOfSystems
         {
@@ -34,8 +35,7 @@ namespace GalaxyatWar
         }
 
         public Dictionary<string, float> warFactionAttackResources = new Dictionary<string, float>();
-        public Dictionary<string, List<string>> attackTargets= new Dictionary<string, List<string>>();
-        internal Dictionary<string, List<StarSystem>> systemTargets = new Dictionary<string, List<StarSystem>>();
+        public Dictionary<string, List<string>> attackTargets = new Dictionary<string, List<string>>();
         public List<string> defenseTargets = new List<string>();
         public Dictionary<string, bool> IncreaseAggression = new Dictionary<string, bool>();
         public List<string> adjacentFactions = new List<string>();
@@ -43,7 +43,9 @@ namespace GalaxyatWar
 
         internal DeathListTracker DeathListTracker
         {
-            get => deathListTrackerBackingField ?? (deathListTrackerBackingField = Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction));
+            get => deathListTrackerBackingField ??
+                   (deathListTrackerBackingField = Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction)) ??
+                   (deathListTrackerBackingField = new DeathListTracker {faction = faction});
             set => deathListTrackerBackingField = value;
         }
 
@@ -67,7 +69,7 @@ namespace GalaxyatWar
             PirateDRLoss = 0;
             foreach (var startFaction in Mod.Globals.IncludedFactions)
                 IncreaseAggression.Add(startFaction, false);
+            All.Add(this.faction, this);
         }
     }
-
 }

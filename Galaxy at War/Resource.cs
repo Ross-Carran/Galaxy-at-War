@@ -14,13 +14,13 @@ namespace GalaxyatWar
         public static void DivideAttackResources(WarFaction warFaction, bool useFullSet)
         {
             //Log("Attacking");
-            var deathList = warFaction.DeathListTracker;
+            var deathListTracker = warFaction.DeathListTracker;
             var warFar = warFaction.warFactionAttackResources;
             warFar.Clear();
             var tempTargets = new Dictionary<string, float>();
             foreach (var fact in warFaction.attackTargets.Keys)
             {
-                tempTargets.Add(fact, deathList.deathList[fact]);
+                tempTargets.Add(fact, deathListTracker.deathList[fact]);
             }
 
             var total = tempTargets.Values.Sum();

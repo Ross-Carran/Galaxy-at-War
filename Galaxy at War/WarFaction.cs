@@ -24,13 +24,13 @@ namespace GalaxyatWar
         public float AR_PerPlanet = 0;
         public float DR_PerPlanet = 0;
         internal static Dictionary<string, WarFaction> All = new Dictionary<string, WarFaction>();
-        
+
         // removing this will break saves 
         public int NumberOfSystems
         {
             get
             {
-                return Mod.Globals.GaWSystems.Count(system => system.OwnerDef == Mod.Globals.Sim.factions[faction]);
+                return Mod.Globals.Sim.StarSystems.Count(system => system.OwnerDef == Mod.Globals.Sim.factions[faction]);
             }
         }
 
@@ -41,11 +41,21 @@ namespace GalaxyatWar
         public List<string> adjacentFactions = new List<string>();
         private DeathListTracker deathListTrackerBackingField;
 
+        // cached, regenerating
         internal DeathListTracker DeathListTracker
         {
-            get => deathListTrackerBackingField ??
-                   (deathListTrackerBackingField = Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction)) ??
-                   (deathListTrackerBackingField = new DeathListTracker {faction = faction});
+            get
+            {
+                if (deathListTrackerBackingField == null)
+                {
+                    if (!DeathListTracker.All.TryGetValue(faction, out deathListTrackerBackingField))
+                    {
+                        deathListTrackerBackingField = new DeathListTracker {faction = faction};
+                    }
+                }
+
+                return deathListTrackerBackingField;
+            }
             set => deathListTrackerBackingField = value;
         }
 

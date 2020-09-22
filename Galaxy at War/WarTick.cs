@@ -71,7 +71,7 @@ namespace GalaxyatWar
                 foreach (var systemStatus in systemStatuses)
                 {
                     //Spread out bonus resources and make them fair game for the taking.
-                    var warFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == systemStatus.owner);
+                    var warFaction = WarFaction.All[systemStatus.owner];
                     systemStatus.AttackResources += warFaction.AR_PerPlanet;
                     systemStatus.TotalResources += warFaction.AR_PerPlanet;
                     systemStatus.DefenseResources += warFaction.DR_PerPlanet;
@@ -94,7 +94,7 @@ namespace GalaxyatWar
                 if (rand < Mod.Globals.WarStatusTracker.HyadesRimsSystemsTaken)
                 {
                     var hyadesSystem = Mod.Globals.WarStatusTracker.HyadesRimGeneralPirateSystems.GetRandomElement();
-                    var flipSystem = Mod.Globals.WarStatusTracker.systems.Find(x => x.name == hyadesSystem).starSystem;
+                    var flipSystem = SystemStatus.All[hyadesSystem].starSystem;
                     var inactiveFaction = Mod.Globals.WarStatusTracker.InactiveTHRFactions.GetRandomElement();
                     ChangeSystemOwnership(flipSystem, inactiveFaction, true);
                     Mod.Globals.WarStatusTracker.InactiveTHRFactions.Remove(inactiveFaction);
@@ -170,7 +170,7 @@ namespace GalaxyatWar
             CalculateDefensiveSystems();
             foreach (var warFaction in Mod.Globals.WarStatusTracker.warFactionTracker)
             {
-                AllocateDefensiveResources(warFaction, useFullSet);
+                AllocateDefensiveResources(warFaction);
                 AllocateAttackResources(warFaction);
             }
 

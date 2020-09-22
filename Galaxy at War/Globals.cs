@@ -32,6 +32,5 @@ namespace GalaxyatWar
         internal TaskTimelineWidget TaskTimelineWidget;
         internal TMP_FontAsset Font;
         internal bool ModInitialized;
-        internal List<StarSystem> GaWSystems = new List<StarSystem>();
     }
 }

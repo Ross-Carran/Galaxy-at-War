@@ -121,10 +121,10 @@ namespace GalaxyatWar
                 if (Globals.WarStatusTracker == null || Globals.Sim.IsCampaign && !Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
-                if (Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == theFaction.Name) == null)
+                if (DeathListTracker.All[theFaction.Name] == null)
                     return;
 
-                var deathListTracker = Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == theFaction.Name);
+                var deathListTracker = DeathListTracker.All[theFaction.Name];
                 AdjustDeathList(deathListTracker, true);
             }
         }
@@ -138,10 +138,10 @@ namespace GalaxyatWar
                 if (Globals.WarStatusTracker == null || Globals.Sim.IsCampaign && !Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
-                if (Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == theFactionID) == null)
+                if (DeathListTracker.All[theFactionID] == null)
                     return;
 
-                var deathListTracker = Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == theFactionID);
+                var deathListTracker = DeathListTracker.All[theFactionID];
                 AdjustDeathList(deathListTracker, true);
             }
         }
@@ -156,10 +156,10 @@ namespace GalaxyatWar
 
                 foreach (var faction in Globals.IncludedFactions)
                 {
-                    if (Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction) == null)
+                    if (DeathListTracker.All[faction] == null)
                         continue;
 
-                    var deathListTracker = Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction);
+                    var deathListTracker = DeathListTracker.All[faction];
                     //LogDebug($"{deathListTracker.faction}'s deathListTracker:");
                     //LogDebug("Allies currently:");
                     //deathListTracker.Allies.Do(x => LogDebug($"  {x}"));
@@ -184,10 +184,10 @@ namespace GalaxyatWar
 
                 foreach (var faction in Globals.IncludedFactions)
                 {
-                    if (Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction) == null)
+                    if (DeathListTracker.All[faction] == null)
                         continue;
 
-                    var deathListTracker = Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == faction);
+                    var deathListTracker = DeathListTracker.All[faction];
                     AdjustDeathList(deathListTracker, true);
                 }
             }
@@ -204,7 +204,7 @@ namespace GalaxyatWar
                     if (Globals.WarStatusTracker == null || Globals.Sim.IsCampaign && !Globals.Sim.CompanyTags.Contains("story_complete"))
                         return;
 
-                    var system = Globals.WarStatusTracker.systems.Find(x => x.name == Globals.Sim.CurSystem.Name);
+                    var system = SystemStatus.All[Globals.Sim.CurSystem.Name];
                     if (system.BonusCBills && Globals.WarStatusTracker.HotBox.Contains(Globals.Sim.CurSystem.Name))
                     {
                         HotSpots.BonusMoney = (int) (__instance.MoneyResults * Settings.BonusCbillsFactor);
@@ -235,7 +235,7 @@ namespace GalaxyatWar
             [HarmonyPatch(typeof(SimGameState), "ResolveCompleteContract")]
             public static class SimGameStateResolveCompleteContractPatch
             {
-                public static void Postfix(SimGameState __instance)
+                public static void Postfix()
                 {
                     if (Globals.WarStatusTracker == null || Globals.Sim.IsCampaign && !Globals.Sim.CompanyTags.Contains("story_complete"))
                         return;
@@ -243,8 +243,7 @@ namespace GalaxyatWar
                     if (Globals.IsFlashpointContract)
                         return;
 
-                    var warSystem = Globals.WarStatusTracker.systems.Find(x => x.name == __instance.CurSystem.Name);
-
+                    var warSystem = SystemStatus.All[Globals.Sim.CurSystem.Name];
                     if (Globals.WarStatusTracker.FlashpointSystems.Contains(warSystem.name))
                         return;
 
@@ -253,19 +252,19 @@ namespace GalaxyatWar
                         double deltaInfluence;
                         if (Globals.TeamFaction == "AuriganPirates")
                         {
-                            deltaInfluence = DeltaInfluence(__instance.CurSystem, Globals.Difficulty, Globals.ContractType, Globals.EnemyFaction, true);
+                            deltaInfluence = DeltaInfluence(Globals.Sim.CurSystem, Globals.Difficulty, Globals.ContractType, Globals.EnemyFaction, true);
                             warSystem.PirateActivity += (float) deltaInfluence;
                         }
                         else if (Globals.EnemyFaction == "AuriganPirates")
                         {
-                            deltaInfluence = DeltaInfluence(__instance.CurSystem, Globals.Difficulty, Globals.ContractType, Globals.EnemyFaction, true);
+                            deltaInfluence = DeltaInfluence(Globals.Sim.CurSystem, Globals.Difficulty, Globals.ContractType, Globals.EnemyFaction, true);
                             warSystem.PirateActivity -= (float) deltaInfluence;
                             if (Globals.WarStatusTracker.Deployment)
                                 Globals.WarStatusTracker.PirateDeployment = true;
                         }
                         else
                         {
-                            deltaInfluence = DeltaInfluence(__instance.CurSystem, Globals.Difficulty, Globals.ContractType, Globals.EnemyFaction, false);
+                            deltaInfluence = DeltaInfluence(Globals.Sim.CurSystem, Globals.Difficulty, Globals.ContractType, Globals.EnemyFaction, false);
                             if (!Globals.InfluenceMaxed)
                             {
                                 warSystem.influenceTracker[Globals.TeamFaction] += (float) deltaInfluence;
@@ -303,20 +302,20 @@ namespace GalaxyatWar
                         //}
 
                         var oldOwner = Globals.Sim.CurSystem.OwnerValue.Name;
-                        if (WillSystemFlip(__instance.CurSystem, Globals.TeamFaction, Globals.EnemyFaction, deltaInfluence, false) ||
+                        if (WillSystemFlip(Globals.Sim.CurSystem, Globals.TeamFaction, Globals.EnemyFaction, deltaInfluence, false) ||
                             Globals.WarStatusTracker.Deployment && Globals.EnemyFaction == "AuriganPirates" && warSystem.PirateActivity < 1)
                         {
                             if (Globals.WarStatusTracker.Deployment && Globals.EnemyFaction == "AuriganPirates" && warSystem.PirateActivity < 1)
                             {
-                                LogDebug($"ComStar Bulletin: Galaxy at War {__instance.CurSystem.Name} defended from Pirates!");
-                                Globals.SimGameInterruptManager.QueueGenericPopup_NonImmediate("ComStar Bulletin: Galaxy at War", $"{__instance.CurSystem.Name} defended from Pirates! ", true, null);
+                                LogDebug($"ComStar Bulletin: Galaxy at War {Globals.Sim.CurSystem.Name} defended from Pirates!");
+                                Globals.SimGameInterruptManager.QueueGenericPopup_NonImmediate("ComStar Bulletin: Galaxy at War", $"{Globals.Sim.CurSystem.Name} defended from Pirates! ", true, null);
                             }
                             else
                             {
-                                LogDebug($"ComStar Bulletin: Galaxy at War!  {__instance.CurSystem.Name} taken!\n{Settings.FactionNames[oldOwner]} conquered by {Settings.FactionNames[Globals.TeamFaction]}");
+                                LogDebug($"ComStar Bulletin: Galaxy at War!  {Globals.Sim.CurSystem.Name} taken!\n{Settings.FactionNames[oldOwner]} conquered by {Settings.FactionNames[Globals.TeamFaction]}");
                                 ChangeSystemOwnership(warSystem.starSystem, Globals.TeamFaction, false);
                                 Globals.SimGameInterruptManager.QueueGenericPopup_NonImmediate(
-                                    "ComStar Bulletin:  Galaxy at War!", $"{__instance.CurSystem.Name} taken!\n{Settings.FactionNames[oldOwner]} conquered by {Settings.FactionNames[Globals.TeamFaction]}", true, null);
+                                    "ComStar Bulletin:  Galaxy at War!", $"{Globals.Sim.CurSystem.Name} taken!\n{Settings.FactionNames[oldOwner]} conquered by {Settings.FactionNames[Globals.TeamFaction]}", true, null);
                                 if (Settings.HyadesRimCompatible && Globals.WarStatusTracker.InactiveTHRFactions.Contains(Globals.TeamFaction))
                                     Globals.WarStatusTracker.InactiveTHRFactions.Remove(Globals.TeamFaction);
                             }
@@ -368,7 +367,7 @@ namespace GalaxyatWar
 
                             foreach (var system in Globals.WarStatusTracker.SystemChangedOwners)
                             {
-                                var systemStatus = Globals.WarStatusTracker.systems.Find(x => x.name == system);
+                                var systemStatus = SystemStatus.All[system];
                                 systemStatus.CurrentlyAttackedBy.Clear();
                                 CalculateAttackAndDefenseTargets(systemStatus.starSystem);
                                 RefreshContractsEmployersAndTargets(systemStatus);
@@ -377,7 +376,7 @@ namespace GalaxyatWar
                             Globals.WarStatusTracker.SystemChangedOwners.Clear();
 
                             var HasFlashpoint = false;
-                            foreach (var contract in __instance.CurSystem.SystemContracts)
+                            foreach (var contract in Globals.Sim.CurSystem.SystemContracts)
                             {
                                 if (contract.IsFlashpointContract || contract.IsFlashpointCampaignContract)
                                 {
@@ -390,10 +389,10 @@ namespace GalaxyatWar
                             {
                                 LogDebug("Refresh contracts after system flip.");
                                 var cmdCenter = UnityGameInstance.BattleTechGame.Simulation.RoomManager.CmdCenterRoom;
-                                __instance.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+                                Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
                             }
 
-                            __instance.StopPlayMode();
+                            Globals.Sim.StopPlayMode();
                         }
                     }
                 }
@@ -455,7 +454,7 @@ namespace GalaxyatWar
                     }
 
                     var targetSystem = contract.TargetSystem;
-                    var systemName = Globals.GaWSystems.Find(x => x.ID == targetSystem);
+                    var systemName = Globals.Sim.StarSystems.Find(x => x.ID == targetSystem);
                     __state = contract.Override.shortDescription;
                     var stringHolder = contract.Override.shortDescription;
                     var employerFaction = contract.GetTeamFaction("ecc8d4f2-74b4-465d-adf6-84445e5dfc230").Name;
@@ -488,7 +487,7 @@ namespace GalaxyatWar
                     else if (defenseFaction == "AuriganPirates")
                         stringHolder = "<b>Impact on Pirate Activity:</b>\n   " + defenderString;
 
-                    var system = Globals.WarStatusTracker.systems.Find(x => x.starSystem == systemName);
+                    var system = SystemStatus.All[systemName.Name];
                     if (system == null)
                     {
                         LogDebug($"CRITICAL:  System {systemName.Name} not found");
@@ -569,26 +568,26 @@ namespace GalaxyatWar
                     theWidget.quantityValueColor.SetUIColor((__instance.quantity > 0 || __instance.quantity == int.MinValue) ? UIColor.White : UIColor.Red);
                     return false;
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Log("*****Exception thrown with ListElementController_InventoryWeapon_NotListView");
-                    Log($"theWidget null: {theWidget == null}");
-                    Log($"theWidget.qtyElement null: {theWidget.qtyElement == null}");
-                    Log($"theWidget.quantityValue null: {theWidget.quantityValue == null}");
-                    Log($"theWidget.quantityValueColor null: {theWidget.quantityValueColor == null}");
+                    Error("*****Exception thrown with ListElementController_InventoryWeapon_NotListView");
+                    Error($"theWidget null: {theWidget == null}");
+                    Error($"theWidget.qtyElement null: {theWidget.qtyElement == null}");
+                    Error($"theWidget.quantityValue null: {theWidget.quantityValue == null}");
+                    Error($"theWidget.quantityValueColor null: {theWidget.quantityValueColor == null}");
                     if (theWidget.itemName != null)
                     {
-                        Log("theWidget.itemName");
-                        Log(theWidget.itemName.ToString());
+                        Error("theWidget.itemName");
+                        Error(theWidget.itemName.ToString());
                     }
 
                     if (__instance.GetName() != null)
                     {
-                        Log("__instance.GetName");
-                        Log(__instance.GetName());
+                        Error("__instance.GetName");
+                        Error(__instance.GetName());
                     }
 
-                    Error(e);
+                    Error(ex);
                     return false;
                 }
             }

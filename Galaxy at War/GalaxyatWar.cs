@@ -27,6 +27,7 @@ namespace GalaxyatWar
 
             Logger.Clear();
             Logger.LogDebug("GaW Starting up...");
+
             foreach (var value in Mod.Settings.GetType().GetFields())
             {
                 var v = value.GetValue(Mod.Settings);
@@ -40,12 +41,9 @@ namespace GalaxyatWar
                 }
             }
 
+            PopulateFactions();
             var harmony = HarmonyInstance.Create("com.Same.BattleTech.GalaxyAtWar");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-
-            // blank the logfile
-
-            CopySettingsToState();
         }
     }
 }

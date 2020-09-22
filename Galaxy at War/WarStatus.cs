@@ -75,7 +75,7 @@ namespace GalaxyatWar
             }
 
             //initialize all WarFactions, DeathListTrackers, and SystemStatuses
-            foreach (var faction in Mod.Settings.IncludedFactions)
+            foreach (var faction in Mod.Globals.IncludedFactions)
             {
                 var warFaction = new WarFaction(faction);
                 var d = new DeathListTracker(faction)
@@ -87,11 +87,11 @@ namespace GalaxyatWar
                 deathListTracker.Add(d);
             }
 
-            foreach (var system in Mod.Globals.GaWSystems)
+            foreach (var system in Mod.Globals.Sim.StarSystems)
             {
                 if (system.OwnerValue.Name == "NoFaction" || system.OwnerValue.Name == "AuriganPirates")
                     AbandonedSystems.Add(system.Name);
-                var warFaction = warFactionTracker.Find(x => x.faction == system.OwnerValue.Name);
+                var warFaction = WarFaction.All[system.OwnerValue.Name];
                 if (Mod.Settings.DefensiveFactions.Contains(warFaction.faction) && Mod.Settings.DefendersUseARforDR)
                     warFaction.DefensiveResources += GetTotalAttackResources(system);
                 else
@@ -103,9 +103,9 @@ namespace GalaxyatWar
             var maxAR = warFactionTracker.Select(x => x.AttackResources).Max();
             var maxDR = warFactionTracker.Select(x => x.DefensiveResources).Max();
 
-            foreach (var faction in Mod.Settings.IncludedFactions)
+            foreach (var faction in Mod.Globals.IncludedFactions)
             {
-                var warFaction = warFactionTracker.Find(x => x.faction == faction);
+                var warFaction = WarFaction.All[faction];
                 if (Mod.Settings.DefensiveFactions.Contains(faction) && Mod.Settings.DefendersUseARforDR)
                 {
                     if (!Mod.Settings.ISMCompatibility)
@@ -141,7 +141,7 @@ namespace GalaxyatWar
             MinimumPirateResources = PirateResources;
             StartingPirateResources = PirateResources;
             Logger.LogDebug("SystemStatus mass creation...");
-            systems = new List<SystemStatus>(Mod.Globals.GaWSystems.Count);
+            systems = new List<SystemStatus>(Mod.Globals.Sim.StarSystems.Count);
             for (var index = 0; index < Mod.Globals.Sim.StarSystems.Count; index++)
             {
                 var system = Mod.Globals.Sim.StarSystems[index];

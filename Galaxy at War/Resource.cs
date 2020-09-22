@@ -56,11 +56,11 @@ namespace GalaxyatWar
                 var map = new Dictionary<string, SystemStatus>();
                 foreach (var targetName in attackTargets)
                 {
-                    map.Add(targetName, Mod.Globals.WarStatusTracker.systems.Find(x => x.name == targetName));
+                    map.Add(targetName, SystemStatus.All[targetName]);
                 }
 
                 var hatred = deathListTracker.deathList[targetFaction];
-                var targetWarFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == targetFaction);
+                var targetWarFaction = WarFaction.All[targetFaction];
                 while (targetFar > 0 && attackTargets.Count > 0)
                 {
                     // DE-CONSTRUCTOR!
@@ -138,7 +138,7 @@ namespace GalaxyatWar
         }
 
 
-        public static void AllocateDefensiveResources(WarFaction warFaction, bool useFullSet)
+        public static void AllocateDefensiveResources(WarFaction warFaction)
         {
             if (warFaction.defenseTargets.Count == 0)
                 return;
@@ -158,7 +158,7 @@ namespace GalaxyatWar
             var map = new Dictionary<string, SystemStatus>();
             foreach (var defenseTarget in warFaction.defenseTargets.Distinct())
             {
-                map.Add(defenseTarget, Mod.Globals.WarStatusTracker.systems.Find(x => x.name == defenseTarget));
+                map.Add(defenseTarget, SystemStatus.All[defenseTarget]);
             }
 
             // spend and decrement defensiveResources

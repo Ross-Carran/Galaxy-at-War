@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using BattleTech;
 using BattleTech.Framework;
@@ -18,7 +19,7 @@ namespace GalaxyatWar
 {
     public class Helpers
     {
-        internal static void CopySettingsToState()
+        internal static void PopulateFactions()
         {
             if (Mod.Settings.ISMCompatibility)
                 Mod.Globals.IncludedFactions = new List<string>(Mod.Settings.IncludedFactions_ISM);
@@ -199,7 +200,7 @@ namespace GalaxyatWar
             var warFactionHolder = warFactionList.OrderBy(x => x.TotalSystemsChanged).ElementAt(0);
             var warFactionListTrimmed = warFactionList.FindAll(x => x.TotalSystemsChanged == warFactionHolder.TotalSystemsChanged);
             warFactionListTrimmed.Shuffle();
-            var warFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == warFactionListTrimmed.ElementAt(0).faction);
+            var warFaction = WarFaction.All[warFactionListTrimmed.First().faction];
             warFaction.ComstarSupported = true;
             Mod.Globals.WarStatusTracker.ComstarAlly = warFaction.faction;
             var factionDef = Mod.Globals.Sim.GetFactionDef(warFaction.faction);
@@ -207,56 +208,73 @@ namespace GalaxyatWar
             {
                 var tempList = factionDef.Allies.ToList();
                 tempList.Add(Mod.Settings.GaW_Police);
-                Traverse.Create(factionDef).Property("Allies").SetValue(tempList.ToArray());
+                factionDef.Allies = tempList.ToArray();
             }
 
             if (Mod.Settings.GaW_PoliceSupport && factionDef.Enemies.Contains(Mod.Settings.GaW_Police))
             {
                 var tempList = factionDef.Enemies.ToList();
                 tempList.Remove(Mod.Settings.GaW_Police);
-                Traverse.Create(factionDef).Property("Enemies").SetValue(tempList.ToArray());
+                factionDef.Enemies = tempList.ToArray();
             }
         }
 
         public static void CalculateAttackAndDefenseTargets(StarSystem starSystem)
         {
-            var warFac = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == starSystem.OwnerValue.Name);
-            if (warFac == null)
-                return;
-            var isFlashpointSystem = Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(starSystem.Name);
-            var warSystem = Mod.Globals.WarStatusTracker.systems.Find(x => x.starSystem == starSystem);
-            var ownerNeighborSystems = warSystem.neighborSystems;
-            ownerNeighborSystems.Clear();
-            if (Mod.Globals.Sim.Starmap.GetAvailableNeighborSystem(starSystem).Count == 0)
-                return;
-
-            foreach (var neighborSystem in Mod.Globals.Sim.Starmap.GetAvailableNeighborSystem(starSystem).Where(x => !Mod.Settings.ImmuneToWar.Contains(x.OwnerValue.Name)))
+            try
             {
-                if (neighborSystem.OwnerValue.Name != starSystem.OwnerValue.Name &&
-                    !isFlashpointSystem)
+                WarFaction.All.TryGetValue(starSystem.OwnerValue.Name, out var warFac);
+                if (warFac == null)
                 {
-                    if (!warFac.attackTargets.ContainsKey(neighborSystem.OwnerValue.Name))
-                    {
-                        var tempList = new List<string> {neighborSystem.Name};
-                        //var tempList = new List<string>(warFac.attackTargets[neighborSystem.OwnerValue.Name]);
-                        warFac.attackTargets.Add(neighborSystem.OwnerValue.Name, tempList);
-                    }
-                    else if (warFac.attackTargets.ContainsKey(neighborSystem.OwnerValue.Name)
-                             && !warFac.attackTargets[neighborSystem.OwnerValue.Name].Contains(neighborSystem.Name))
-                    {
-                        // bug should Locals be here?
-                        warFac.attackTargets[neighborSystem.OwnerValue.Name].Add(neighborSystem.Name);
-                    }
-
-                    //if (!warFac.defenseTargets.Contains(starSystem.Name))
-                    //{
-                    //    warFac.defenseTargets.Add(starSystem.Name);
-                    //}
-                    if (!warFac.adjacentFactions.Contains(starSystem.OwnerValue.Name) && !Mod.Settings.DefensiveFactions.Contains(starSystem.OwnerValue.Name))
-                        warFac.adjacentFactions.Add(starSystem.OwnerValue.Name);
+                    Error($"Can't find WarFaction for {starSystem.OwnerValue.Name}.");
+                    return;
                 }
 
-                RefreshNeighbors(ownerNeighborSystems, neighborSystem);
+                var isFlashpointSystem = Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(starSystem.Name);
+                SystemStatus.All.TryGetValue(starSystem.Name, out var warSystem);
+                if (warSystem == null)
+                {
+                    Error("Can't find " + starSystem.Name);
+                    Error(new StackTrace());
+                    return;
+                }
+                var ownerNeighborSystems = warSystem.neighborSystems;
+                ownerNeighborSystems.Clear();
+                if (Mod.Globals.Sim.Starmap.GetAvailableNeighborSystem(starSystem).Count == 0)
+                    return;
+
+                foreach (var neighborSystem in Mod.Globals.Sim.Starmap.GetAvailableNeighborSystem(starSystem).Where(x => !Mod.Settings.ImmuneToWar.Contains(x.OwnerValue.Name)))
+                {
+                    if (neighborSystem.OwnerValue.Name != starSystem.OwnerValue.Name &&
+                        !isFlashpointSystem)
+                    {
+                        if (!warFac.attackTargets.ContainsKey(neighborSystem.OwnerValue.Name))
+                        {
+                            var tempList = new List<string> {neighborSystem.Name};
+                            //var tempList = new List<string>(warFac.attackTargets[neighborSystem.OwnerValue.Name]);
+                            warFac.attackTargets.Add(neighborSystem.OwnerValue.Name, tempList);
+                        }
+                        else if (warFac.attackTargets.ContainsKey(neighborSystem.OwnerValue.Name)
+                                 && !warFac.attackTargets[neighborSystem.OwnerValue.Name].Contains(neighborSystem.Name))
+                        {
+                            // bug should Locals be here?
+                            warFac.attackTargets[neighborSystem.OwnerValue.Name].Add(neighborSystem.Name);
+                        }
+
+                        //if (!warFac.defenseTargets.Contains(starSystem.Name))
+                        //{
+                        //    warFac.defenseTargets.Add(starSystem.Name);
+                        //}
+                        if (!warFac.adjacentFactions.Contains(starSystem.OwnerValue.Name) && !Mod.Settings.DefensiveFactions.Contains(starSystem.OwnerValue.Name))
+                            warFac.adjacentFactions.Add(starSystem.OwnerValue.Name);
+                    }
+
+                    RefreshNeighbors(ownerNeighborSystems, neighborSystem);
+                }
+            }
+            catch (Exception ex)
+            {
+                Error(ex);
             }
         }
 
@@ -304,7 +322,7 @@ namespace GalaxyatWar
                 var totalInfluence = system.influenceTracker.Values.Sum();
                 if ((totalInfluence - 100) / 100 > Mod.Settings.SystemDefenseCutoff)
                 {
-                    var warFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == system.owner);
+                    var warFaction = WarFaction.All[system.owner];
                     warFaction.defenseTargets.Add(system.name);
                 }
             }
@@ -362,7 +380,7 @@ namespace GalaxyatWar
                     }
                 }
 
-                var systemStatus = Mod.Globals.WarStatusTracker.systems.Find(x => x.starSystem == system);
+                var systemStatus = SystemStatus.All[system.Name];
                 var oldOwner = systemStatus.owner;
                 systemStatus.owner = faction;
                 system.Def.factionShopOwnerID = faction;
@@ -372,7 +390,7 @@ namespace GalaxyatWar
                 var totalAR = GetTotalAttackResources(system);
                 var totalDr = GetTotalDefensiveResources(system);
 
-                var wfWinner = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == faction);
+                var wfWinner = WarFaction.All[faction];
                 wfWinner.GainedSystem = true;
                 wfWinner.MonthlySystemsChanged += 1;
                 wfWinner.TotalSystemsChanged += 1;
@@ -387,7 +405,7 @@ namespace GalaxyatWar
                     wfWinner.DefensiveResources += totalDr;
                 }
 
-                var wfLoser = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == oldFaction.Name);
+                var wfLoser = WarFaction.All[oldFaction.Name];
                 wfLoser.LostSystem = true;
                 wfLoser.MonthlySystemsChanged -= 1;
                 wfLoser.TotalSystemsChanged -= 1;
@@ -433,17 +451,23 @@ namespace GalaxyatWar
             var killListDelta = Math.Max(10, systemValue);
             try
             {
-                var factionTracker = Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == oldFaction);
-                if (factionTracker.deathList.ContainsKey(faction))
+                if (DeathListTracker.All.TryGetValue(oldFaction, out var deathListTracker))
                 {
-                    if (factionTracker.deathList[faction] < 50)
-                        factionTracker.deathList[faction] = 50;
+                    if (deathListTracker.deathList.ContainsKey(faction))
+                    {
+                        if (deathListTracker.deathList[faction] < 50)
+                            deathListTracker.deathList[faction] = 50;
 
-                    factionTracker.deathList[faction] += killListDelta;
+                        deathListTracker.deathList[faction] += killListDelta;
+                    }
+                    else
+                    {
+                        Error($"deathListTracker for {oldFaction} is missing faction {faction}, ignoring.");
+                    }
                 }
                 else
                 {
-                    LogDebug($"factionTracker missing faction {faction}, ignoring.");
+                    Error($"DeathListTracker not found for {oldFaction}");
                 }
             }
             catch (Exception ex)
@@ -458,18 +482,18 @@ namespace GalaxyatWar
                 {
                     foreach (var ally in Mod.Globals.Sim.GetFactionDef(oldFaction).Allies)
                     {
-                        if (!Mod.Globals.IncludedFactions.Contains(ally) || faction == ally || Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == ally) == null)
+                        if (!Mod.Globals.IncludedFactions.Contains(ally) || faction == ally || DeathListTracker.All[ally] == null)
                             continue;
-                        var factionAlly = Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == ally);
+                        var factionAlly = DeathListTracker.All[ally];
                         factionAlly.deathList[faction] += killListDelta / 2;
                     }
 
                     //Enemies of the target faction are happy with the faction doing the beating. 
                     foreach (var enemy in Mod.Globals.Sim.GetFactionDef(oldFaction).Enemies)
                     {
-                        if (!Mod.Globals.IncludedFactions.Contains(enemy) || enemy == faction || Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == enemy) == null)
+                        if (!Mod.Globals.IncludedFactions.Contains(enemy) || enemy == faction || DeathListTracker.All[enemy] == null)
                             continue;
-                        var factionEnemy = Mod.Globals.WarStatusTracker.deathListTracker.Find(x => x.faction == enemy);
+                        var factionEnemy = DeathListTracker.All[enemy];
                         factionEnemy.deathList[faction] -= killListDelta / 2;
                     }
                 }
@@ -496,7 +520,7 @@ namespace GalaxyatWar
                 var topHalf = attackCount.Count / 2;
                 foreach (var attackTarget in attackCount.OrderByDescending(x => x.Value))
                 {
-                    var warFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == attackTarget.Key);
+                    var warFaction = WarFaction.All[attackTarget.Key];
                     if (i < topHalf)
                         warFaction.IncreaseAggression[warFaction.faction] = true;
                     else
@@ -513,7 +537,7 @@ namespace GalaxyatWar
                 Mod.Globals.WarStatusTracker.SystemChangedOwners.Add(system.Name);
             foreach (var neighborSystem in Mod.Globals.Sim.Starmap.GetAvailableNeighborSystem(system))
             {
-                var wfat = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == neighborSystem.OwnerValue.Name).attackTargets;
+                var wfat = WarFaction.All[neighborSystem.OwnerValue.Name].attackTargets;
                 if (wfat.Keys.Contains(oldOwner.faction) && wfat[oldOwner.faction].Contains(system.Name))
                     wfat[oldOwner.faction].Remove(system.Name);
             }
@@ -587,7 +611,7 @@ namespace GalaxyatWar
             var combinedString = "";
             foreach (var faction in Mod.Globals.IncludedFactions)
             {
-                var warFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == faction);
+                var warFaction = WarFaction.All[faction];
                 combinedString = combinedString + "<b><u>" + Mod.Settings.FactionNames[faction] + "</b></u>\n";
                 var summaryString = "Monthly Change in Systems: " + warFaction.MonthlySystemsChanged + "\n";
                 var summaryString2 = "Overall Change in Systems: " + warFaction.TotalSystemsChanged + "\n\n";
@@ -692,7 +716,7 @@ namespace GalaxyatWar
 
         internal static double DeltaInfluence(StarSystem system, double contractDifficulty, string contractTypeID, string defenseFaction, bool piratesInvolved)
         {
-            var targetSystem = Mod.Globals.WarStatusTracker.systems.Find(x => x.starSystem == system);
+            var targetSystem = SystemStatus.All[system.Name];
             if (targetSystem == null)
             {
                 LogDebug($"null systemStatus {system.Name} at DeltaInfluence");
@@ -754,7 +778,7 @@ namespace GalaxyatWar
 
         internal static bool WillSystemFlip(StarSystem system, string winner, string loser, double deltaInfluence, bool preBattle)
         {
-            var warSystem = Mod.Globals.WarStatusTracker.systems.Find(x => x.starSystem == system);
+            var warSystem = SystemStatus.All[system.Name];
             if (warSystem == null)
             {
                 LogDebug($"null systemStatus {system.Name} at WillSystemFlip");
@@ -790,7 +814,7 @@ namespace GalaxyatWar
 
         internal static int CalculateFlipMissions(string attacker, StarSystem system)
         {
-            var warSystem = Mod.Globals.WarStatusTracker.systems.Find(x => x.starSystem == system);
+            var warSystem = SystemStatus.All[system.Name];
             var tempIt = new Dictionary<string, float>(warSystem.influenceTracker);
             var missionCounter = 0;
             var influenceDifference = 0.0f;
@@ -862,6 +886,7 @@ namespace GalaxyatWar
 
             var deathListOffensiveFactions = new List<string>(trackerDeathList.Keys.Except(Mod.Settings.DefensiveFactions));
             var warFaction = deathListTracker.WarFaction;
+
             var hasEnemy = false;
             //Defensive Only factions are always neutral
             Mod.Settings.DefensiveFactions.Do(x => trackerDeathList[x] = 50);
@@ -1053,7 +1078,7 @@ namespace GalaxyatWar
         {
             var contracts = new List<Contract>();
             var system = Mod.Globals.Sim.CurSystem;
-            var systemStatus = Mod.Globals.WarStatusTracker.systems.Find(x => x.starSystem == system);
+            var systemStatus = SystemStatus.All[system.Name];
             var influenceTracker = systemStatus.influenceTracker;
             var owner = influenceTracker.First().Key;
             var second = influenceTracker.Skip(1).First().Key;
@@ -1070,7 +1095,7 @@ namespace GalaxyatWar
             contract = Contracts.GenerateContract(system, 4, 4, second);
             contracts.Add(contract);
             LogDebug(4);
-            contract = Contracts.GenerateContract(system, 6, 6, Mod.Settings.IncludedFactions.Where(x => x != "NoFaction").GetRandomElement());
+            contract = Contracts.GenerateContract(system, 6, 6, Mod.Globals.IncludedFactions.Where(x => x != "NoFaction").GetRandomElement());
             contracts.Add(contract);
             LogDebug(5);
             Mod.Globals.Sim.CurSystem.activeSystemContracts = contracts;
@@ -1088,8 +1113,8 @@ namespace GalaxyatWar
                 int variedDifficulty;
                 var isTravel = Mod.Globals.Rng.Next(0, 2) == 0;
                 var isPriority = Mod.Globals.Rng.Next(0, 11) == 0;
-                var system = isTravel ? Mod.Globals.GaWSystems.Where(x => x.JumpDistance < 10).GetRandomElement() : Mod.Globals.Sim.CurSystem;
-                var systemStatus = Mod.Globals.WarStatusTracker.systems.Find(x => x.starSystem == system);
+                var system = isTravel ? Mod.Globals.Sim.StarSystems.Where(x => x.JumpDistance < 10).GetRandomElement() : Mod.Globals.Sim.CurSystem;
+                var systemStatus = SystemStatus.All[system.Name];
                 var owner = systemStatus.influenceTracker.OrderByDescending(x => x.Value).Select(x => x.Key).First();
                 var second = systemStatus.influenceTracker.OrderByDescending(x =>
                     x.Value).Select(x => x.Key).Skip(1).Take(1).First();
@@ -1130,6 +1155,5 @@ namespace GalaxyatWar
             const int variance = 2;
             return starSystem.Def.GetDifficulty(SimGameState.SimGameType.CAREER) + Mod.Globals.Rng.Next(-variance, variance + 1);
         }
-
     }
 }

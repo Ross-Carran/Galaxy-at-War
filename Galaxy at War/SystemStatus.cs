@@ -46,10 +46,7 @@ namespace GalaxyatWar
 
         internal StarSystem starSystem
         {
-            get
-            {
-                return starSystemBackingField ?? (starSystemBackingField = Mod.Globals.Sim.StarSystems.Find(s => s.Name == name));
-            }
+            get => starSystemBackingField ?? (starSystemBackingField = Mod.Globals.Sim.StarSystems.Find(s => s.Name == name));
             private set => starSystemBackingField = value;
         }
 

@@ -17,7 +17,12 @@ namespace GalaxyatWar
         {
             get
             {
-                return warFactionBackingField ?? (warFactionBackingField = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == faction));
+                if (warFactionBackingField == null)
+                {
+                    WarFaction.All.TryGetValue(faction, out warFactionBackingField);
+                }
+
+                return warFactionBackingField;
             }
             set => warFactionBackingField = value;
         }

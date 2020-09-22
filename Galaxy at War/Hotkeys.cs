@@ -38,9 +38,9 @@ namespace GalaxyatWar
                     LogDebug($"Targets in {starSystem.Name}");
                     contractTargets.Do(x => LogDebug($"  {x}"));
                     Mod.Globals.Sim.GetAllCurrentlySelectableContracts().Do(x => LogDebug($"{x.Name,-25} {x.Difficulty} ({x.Override.GetUIDifficulty()})"));
-                    var systemStatus = Mod.Globals.WarStatusTracker.systems.Find(x => x.starSystem == starSystem);
+                    var systemStatus = SystemStatus.All[starSystem.Name];
                     var employers = systemStatus.influenceTracker.OrderByDescending(x => x.Value).Select(x => x.Key).Take(2);
-                    foreach (var faction in Mod.Settings.IncludedFactions.Intersect(employers))
+                    foreach (var faction in Mod.Globals.IncludedFactions.Intersect(employers))
                     {
                         LogDebug($"{faction} Enemies:");
                         FactionEnumeration.GetFactionByName(faction).factionDef?.Enemies.Distinct().Do(x => LogDebug($"  {x}"));

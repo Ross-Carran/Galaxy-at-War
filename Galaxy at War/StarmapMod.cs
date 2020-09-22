@@ -146,7 +146,7 @@ namespace GalaxyatWar
                     continue;
                 }
 
-                var warFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == tracker.faction);
+                var warFaction = WarFaction.All[tracker.faction];
                 sb.AppendLine($"<b><u>{Mod.Settings.FactionNames[tracker.faction]}</b></u>\n");
                 if (tracker.faction == Mod.Globals.WarStatusTracker.ComstarAlly)
                 {
@@ -216,9 +216,11 @@ namespace GalaxyatWar
         [HarmonyPatch(typeof(SimGameState), "Update")]
         public static class SimGameStateUpdatePatch
         {
-            public static void Postfix(SimGameState __instance)
+            public static void Postfix()
             {
-                if (Mod.Globals.WarStatusTracker != null && Mod.Globals.Sim.TravelState == SimGameTravelStatus.IN_SYSTEM && Mod.DeploymentIndicator != null)
+                if (Mod.Globals.WarStatusTracker != null &&
+                    Mod.Globals.Sim.TravelState == SimGameTravelStatus.IN_SYSTEM &&
+                    Mod.DeploymentIndicator != null)
                 {
                     Mod.DeploymentIndicator.ShowDeploymentIndicator(Mod.Globals.WarStatusTracker.Deployment && Mod.Globals.WarStatusTracker.EscalationDays <= 0);
                 }
@@ -284,7 +286,7 @@ namespace GalaxyatWar
                 SubString = "";
             factionString.AppendLine(SubString);
 
-            var tracker = Mod.Globals.WarStatusTracker.systems.Find(x => x.starSystem == starSystem);
+            var tracker = SystemStatus.All[starSystem.Name];
             foreach (var influence in tracker.influenceTracker.OrderByDescending(x => x.Value))
             {
                 string number;

@@ -13,11 +13,11 @@ namespace GalaxyatWar
             logFilePath ??
             (logFilePath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName + "/Galaxy-at-War.log");
 
-        public static async void Error(Exception ex)
+        public static async void Error(object line)
         {
             using (var writer = new StreamWriter(LogFilePath, true))
             {
-                await writer.WriteLineAsync($"{GetFormattedStartupTime()}  {ex}");
+                await writer.WriteLineAsync($"{GetFormattedStartupTime()}  {line ?? "null"}");
             }
         }
 

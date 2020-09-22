@@ -1,7 +1,5 @@
-using BattleTech;
 using BattleTech.UI;
 using BattleTech.UI.TMProWrapper;
-using Harmony;
 using HBS.Extensions;
 using UnityEngine;
 using UnityEngine.UI;
@@ -51,15 +49,6 @@ namespace GalaxyatWar
                     playPauseButton.SetActive(true);
                     hitBox.SetActive(true);
                 }
-            }
-        }
-
-        [HarmonyPatch(typeof(SimGameState), "_OnAttachUXComplete")]
-        public class asdfs
-        {
-            private static void Postfix()
-            {
-                Mod.DeploymentIndicator = new DeploymentIndicator();
             }
         }
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+
 // ReSharper disable InconsistentNaming
 // ReSharper disable ClassNeverInstantiated.Global
 
@@ -51,39 +52,46 @@ namespace GalaxyatWar
             var tempFullPirateListSystems = new List<SystemStatus>(FullPirateListSystems);
             foreach (var system in tempFullPirateListSystems)
             {
-                var warFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == system.owner);
-                float PAChange;
-                if (factionEscalateDefense[warFaction])
-                    PAChange = (float) (Mod.Globals.Rng.NextDouble() * (system.PirateActivity - system.PirateActivity / 3) + system.PirateActivity / 3);
-                else
-                    PAChange = (float) (Mod.Globals.Rng.NextDouble() * (system.PirateActivity / 3));
-
-                var attackResources = warFaction.AttackResources;
-
-                if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
-                    attackResources = warFaction.DefensiveResources;
-
-                var defenseCost = Mathf.Min(PAChange * system.TotalResources / 100, warFaction.AttackResources * 0.01f);
-
-                if (attackResources >= defenseCost)
+                if (WarFaction.All.TryGetValue(system.owner, out var warFaction))
                 {
-                    PAChange = Math.Min(PAChange, system.PirateActivity);
-                    system.PirateActivity -= PAChange;
-                    if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
-                        warFaction.DR_Against_Pirates += defenseCost;
+                    float PAChange;
+                    if (factionEscalateDefense.ContainsKey(warFaction) &&
+                        factionEscalateDefense[warFaction])
+                        PAChange = (float) (Mod.Globals.Rng.NextDouble() * (system.PirateActivity - system.PirateActivity / 3) + system.PirateActivity / 3);
                     else
-                        warFaction.AR_Against_Pirates += defenseCost;
-                    //warFaction.PirateDRLoss += PAChange * system.TotalResources / 100;
+                        PAChange = (float) (Mod.Globals.Rng.NextDouble() * (system.PirateActivity / 3));
+
+                    var attackResources = warFaction.AttackResources;
+
+                    if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
+                        attackResources = warFaction.DefensiveResources;
+
+                    var defenseCost = Mathf.Min(PAChange * system.TotalResources / 100, warFaction.AttackResources * 0.01f);
+
+                    if (attackResources >= defenseCost)
+                    {
+                        PAChange = Math.Min(PAChange, system.PirateActivity);
+                        system.PirateActivity -= PAChange;
+                        if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
+                            warFaction.DR_Against_Pirates += defenseCost;
+                        else
+                            warFaction.AR_Against_Pirates += defenseCost;
+                        //warFaction.PirateDRLoss += PAChange * system.TotalResources / 100;
+                    }
+                    else
+                    {
+                        PAChange = Math.Min(attackResources, system.PirateActivity);
+                        system.PirateActivity -= PAChange;
+                        if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
+                            warFaction.DR_Against_Pirates += defenseCost;
+                        else
+                            warFaction.AR_Against_Pirates += defenseCost;
+                        //warFaction.PirateDRLoss += PAChange * system.TotalResources / 100;
+                    }
                 }
                 else
                 {
-                    PAChange = Math.Min(attackResources, system.PirateActivity);
-                    system.PirateActivity -= PAChange;
-                    if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
-                        warFaction.DR_Against_Pirates += defenseCost;
-                    else
-                        warFaction.AR_Against_Pirates += defenseCost;
-                    //warFaction.PirateDRLoss += PAChange * system.TotalResources / 100;
+                    Logger.LogDebug($"Pirate system {system.owner} doesn't exist in WarFaction.All");
                 }
 
                 if (system.PirateActivity == 0)
@@ -109,7 +117,7 @@ namespace GalaxyatWar
                 Mod.Globals.WarStatusTracker.PirateResources += system.TotalResources * system.PirateActivity / 100;
                 Mod.Globals.WarStatusTracker.TempPRGain += system.TotalResources * system.PirateActivity / 100;
 
-                var warFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == system.owner);
+                var warFaction = WarFaction.All[system.owner];
                 var warFARChange = system.AttackResources * system.PirateActivity / 100;
                 if (Mod.Settings.DefendersUseARforDR && Mod.Settings.DefensiveFactions.Contains(warFaction.faction))
                     warFaction.PirateDRLoss += warFARChange;

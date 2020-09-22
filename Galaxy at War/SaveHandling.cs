@@ -21,6 +21,8 @@ namespace GalaxyatWar
 {
     public static class SaveHandling
     {
+        private static bool RePopulateMaps;
+
         [HarmonyPatch(typeof(SaveGameStructure), "Load", typeof(string))]
         public class SimGameStateRehydratePatch
         {
@@ -30,7 +32,9 @@ namespace GalaxyatWar
                 if (Mod.Globals.ModInitialized)
                 {
                     Mod.Globals = new Globals();
-                    CopySettingsToState();
+                    PopulateFactions();
+                    RePopulateMaps = true;
+                    Mod.DeploymentIndicator = new DeploymentIndicator();
                     LogDebug("State reset.");
                 }
             }
@@ -41,44 +45,28 @@ namespace GalaxyatWar
         {
             private static void Postfix(Starmap __instance)
             {
-                LogDebug("PopulateMap");
+                LogDebug("StarmapPopulateMapPatch");
+                if (RePopulateMaps)
+                {
+                    PopulateLookupMaps();
+                    RePopulateMaps = false;
+                }
+
                 if (Mod.Globals.ModInitialized)
                 {
                     return;
                 }
 
                 LogDebug("Initializing...");
-                Mod.Globals.Sim = __instance.sim;
+                Mod.Globals.Sim = Mod.Globals.Sim ?? __instance.sim;
                 Mod.Globals.SimGameInterruptManager = Mod.Globals.Sim.InterruptQueue;
-                Mod.Globals.GaWSystems = Mod.Globals.Sim.StarSystems.Where(x =>
-                    !Mod.Settings.ImmuneToWar.Contains(x.OwnerValue.Name)).ToList();
                 if (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                 {
                     LogDebug("Aborting GaW loading.");
                     return;
                 }
 
-                PopulateLookupMaps();
-                foreach (var warFaction in WarFaction.All.Values)
-                {
-                    if (warFaction.DeathListTracker == null)
-                    {
-                        LogDebug($"Rebuilding missing DeathListTracker for {warFaction.faction}");
-                        warFaction.DeathListTracker = new DeathListTracker {faction = warFaction.faction};
-                    }
-                }
-
-                // thanks to mpstark for this
-                var fonts = Resources.FindObjectsOfTypeAll(typeof(TMP_FontAsset));
-                foreach (var o in fonts)
-                {
-                    var font = (TMP_FontAsset) o;
-                    if (font.name == "UnitedSansSemiExt-Light")
-                    {
-                        Mod.Globals.Font = font;
-                    }
-                }
-
+                SetFont();
                 if (Mod.Settings.ResetMap)
                 {
                     LogDebug("Resetting map due to settings.");
@@ -90,10 +78,11 @@ namespace GalaxyatWar
                 var gawTag = Mod.Globals.Sim.CompanyTags.FirstOrDefault(x => x.StartsWith("GalaxyAtWarSave"));
                 if (!string.IsNullOrEmpty(gawTag))
                 {
-                    DeserializeWar();
-                    // cleaning up old tag data
+                    DeserializeWar(gawTag);
+                    LogDebug("Validating state...");
                     ValidateState();
-                    LogDebug(Mod.Globals.WarStatusTracker.Deployment);
+                    LogDebug("Populating lookup maps...");
+                    PopulateLookupMaps();
 
                     // try to recover from negative DR
                     foreach (var systemStatus in Mod.Globals.WarStatusTracker.systems)
@@ -119,6 +108,7 @@ namespace GalaxyatWar
                     }
 
                     // copied from WarStatus - establish any systems that are new
+                    LogDebug("Adding any new StarSystems...");
                     AddNewStarSystems();
                 }
                 else
@@ -126,150 +116,179 @@ namespace GalaxyatWar
                     Spawn();
                 }
 
+                Mod.DeploymentIndicator = new DeploymentIndicator();
+                LogDebug("Initialization complete.");
                 Mod.Globals.ModInitialized = true;
-            }
-
-            private static void PopulateLookupMaps()
-            {
-                if (WarFaction.All.Count < Mod.Settings.IncludedFactions.Count)
-                {
-                    WarFaction.All = new Dictionary<string, WarFaction>();
-                    foreach (var warFaction in Mod.Globals.WarStatusTracker.warFactionTracker)
-                    {
-                        WarFaction.All.Add(warFaction.faction, warFaction);
-                    }
-                }
-
-                if (DeathListTracker.All.Count < Mod.Settings.IncludedFactions.Count)
-                {
-                    DeathListTracker.All = new Dictionary<string, DeathListTracker>();
-                    foreach (var deathListTracker in Mod.Globals.WarStatusTracker.deathListTracker)
-                    {
-                        DeathListTracker.All.Add(deathListTracker.faction, deathListTracker);
-                    }
-                }
-
-                if (SystemStatus.All.Count < Mod.Globals.GaWSystems.Count)
-                {
-                    SystemStatus.All = new Dictionary<string, SystemStatus>();
-                    foreach (var systemStatus in Mod.Globals.WarStatusTracker.systems)
-                    {
-                        SystemStatus.All.Add(systemStatus.name, systemStatus);
-                    }
-                }
-            }
-
-            // remove from the war any systems which are now immune
-            private static void ValidateState()
-            {
-                // make sure DeathListTrackers exist (new factions added to existing save or something?)
-                foreach (var faction in Mod.Settings.IncludedFactions)
-                {
-                }
-
-                if (Mod.Globals.GaWSystems.Count < Mod.Globals.WarStatusTracker.systems.Count)
-                {
-                    for (var index = 0; index < Mod.Globals.WarStatusTracker.systems.Count; index++)
-                    {
-                        var systemStatus = Mod.Globals.WarStatusTracker.systems[index];
-                        if (Mod.Settings.ImmuneToWar.Contains(systemStatus.OriginalOwner))
-                        {
-                            LogDebug($"Removed: {systemStatus.starSystem.Name,-15} -> Immune to war, owned by {systemStatus.starSystem.OwnerValue.Name}.");
-                            Mod.Globals.WarStatusTracker.systems.Remove(systemStatus);
-                        }
-                    }
-                }
-
-                // remove from trackers any immune factions
-                foreach (var deathListTracker in Mod.Globals.WarStatusTracker.deathListTracker)
-                {
-                    if (deathListTracker.Enemies.Any(x => Mod.Settings.ImmuneToWar.Contains(x)))
-                    {
-                        LogDebug($"Pruning immune factions from deathListTracker of {deathListTracker.faction}.");
-                    }
-
-                    for (var i = 0; i < deathListTracker.Enemies.Count; i++)
-                    {
-                        if (Mod.Settings.ImmuneToWar.Contains(deathListTracker.Enemies[i]))
-                        {
-                            LogDebug($"Removing enemy {deathListTracker.Enemies[i]} from {deathListTracker.faction}.");
-                            deathListTracker.Enemies.Remove(deathListTracker.Enemies[i]);
-                        }
-                    }
-                }
-
-                // doubtful this is needed...
-                var _ = new Dictionary<string, float>();
-                foreach (var kvp in Mod.Globals.WarStatusTracker.FullHomeContendedSystems)
-                {
-                    if (!Mod.Settings.ImmuneToWar.Contains(kvp.Key))
-                    {
-                        _.Add(kvp.Key, kvp.Value);
-                    }
-                    else
-                    {
-                        LogDebug($"Removing {kvp.Key} from FullHomeContendedSystems, as they are immune to war.");
-                    }
-                }
-
-                Mod.Globals.WarStatusTracker.FullHomeContendedSystems = _;
-            }
-
-            // if the war is missing systems, add them
-            private static void AddNewStarSystems()
-            {
-                for (var index = 0; index < Mod.Globals.Sim.StarSystems.Count; index++)
-                {
-                    var system = Mod.Globals.Sim.StarSystems[index];
-                    if (Mod.Settings.ImmuneToWar.Contains(Mod.Globals.Sim.StarSystems[index].OwnerValue.Name) ||
-                        Mod.Globals.WarStatusTracker.systems.Any(x => x.starSystem == system))
-                    {
-                        continue;
-                    }
-
-                    LogDebug($"Trying to add {system.Name}, owner {system.OwnerValue.Name}.");
-                    var systemStatus = new SystemStatus(system, system.OwnerValue.Name);
-                    Mod.Globals.WarStatusTracker.systems.Add(systemStatus);
-                    if (system.Tags.Contains("planet_other_pirate") && !system.Tags.Contains("planet_region_hyadesrim"))
-                    {
-                        Mod.Globals.WarStatusTracker.FullPirateSystems.Add(system.Name);
-                        PiratesAndLocals.FullPirateListSystems.Add(systemStatus);
-                    }
-
-                    if (system.Tags.Contains("planet_region_hyadesrim") &&
-                        !Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(system.Name) &&
-                        (system.OwnerValue.Name == "NoFaction" || system.OwnerValue.Name == "Locals"))
-                        Mod.Globals.WarStatusTracker.HyadesRimGeneralPirateSystems.Add(system.Name);
-                }
-            }
-
-            private static void Spawn()
-            {
-                LogDebug("Spawning new instance.");
-                Mod.Globals.WarStatusTracker = new WarStatus();
-                LogDebug("New global state created.");
-                // TODO is this value unchanging?  this is wrong if not
-                Mod.Globals.WarStatusTracker.systemsByResources =
-                    Mod.Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
-                if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
-                {
-                    LogDebug($"Refreshing contracts at spawn ({Mod.Globals.Sim.CurSystem.Name}).");
-                    var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
-                    Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
-                    Mod.Globals.WarStatusTracker.StartGameInitialized = true;
-                }
-
-                SystemDifficulty();
-                Mod.Globals.WarStatusTracker.FirstTickInitialization = true;
-                Mod.Globals.WarStatusTracker.StartGameInitialized = false;
-                WarTick.Tick(true, true);
             }
         }
 
-        private static void DeserializeWar()
+        private static void SetFont()
+        {
+            // thanks to mpstark for this
+            var fonts = Resources.FindObjectsOfTypeAll(typeof(TMP_FontAsset));
+            foreach (var o in fonts)
+            {
+                var font = (TMP_FontAsset) o;
+                if (font.name == "UnitedSansSemiExt-Light")
+                {
+                    Mod.Globals.Font = font;
+                }
+            }
+        }
+
+        private static void PopulateLookupMaps()
+        {
+            if (WarFaction.All == null)
+            {
+                WarFaction.All = new Dictionary<string, WarFaction>();
+            }
+
+            if (WarFaction.All.Count != Mod.Globals.IncludedFactions.Count)
+            {
+                WarFaction.All.Clear();
+                foreach (var warFaction in Mod.Globals.WarStatusTracker.warFactionTracker)
+                {
+                    WarFaction.All.Add(warFaction.faction, warFaction);
+                }
+            }
+
+            if (DeathListTracker.All == null)
+            {
+                DeathListTracker.All = new Dictionary<string, DeathListTracker>();
+            }
+
+            if (DeathListTracker.All.Count != Mod.Globals.IncludedFactions.Count)
+            {
+                DeathListTracker.All.Clear();
+                foreach (var deathListTracker in Mod.Globals.WarStatusTracker.deathListTracker)
+                {
+                    DeathListTracker.All.Add(deathListTracker.faction, deathListTracker);
+                }
+            }
+
+            if (SystemStatus.All == null)
+            {
+                SystemStatus.All = new Dictionary<string, SystemStatus>();
+            }
+
+            if (SystemStatus.All.Count != Mod.Globals.Sim.StarSystems.Count)
+            {
+                SystemStatus.All.Clear();
+                foreach (var systemStatus in Mod.Globals.WarStatusTracker.systems)
+                {
+                    SystemStatus.All.Add(systemStatus.name, systemStatus);
+                }
+            }
+        }
+
+        // remove from the war any systems which are now immune
+        private static void ValidateState()
+        {
+            // TODO make sure WarFaction and DeathListTrackers exist (new factions added to existing save or something?)
+
+            if (Mod.Globals.Sim.StarSystems.Count < Mod.Globals.WarStatusTracker.systems.Count)
+            {
+                for (var index = 0; index < Mod.Globals.WarStatusTracker.systems.Count; index++)
+                {
+                    var systemStatus = Mod.Globals.WarStatusTracker.systems[index];
+                    if (Mod.Settings.ImmuneToWar.Contains(systemStatus.OriginalOwner))
+                    {
+                        LogDebug($"Removed: {systemStatus.starSystem.Name,-15} -> Immune to war, owned by {systemStatus.starSystem.OwnerValue.Name}.");
+                        Mod.Globals.WarStatusTracker.systems.Remove(systemStatus);
+                    }
+                }
+            }
+
+            // remove from trackers any immune factions
+            foreach (var deathListTracker in Mod.Globals.WarStatusTracker.deathListTracker)
+            {
+                if (deathListTracker.Enemies.Any(x => Mod.Settings.ImmuneToWar.Contains(x)))
+                {
+                    LogDebug($"Pruning immune factions from deathListTracker of {deathListTracker.faction}...");
+                }
+
+                for (var i = 0; i < deathListTracker.Enemies.Count; i++)
+                {
+                    if (Mod.Settings.ImmuneToWar.Contains(deathListTracker.Enemies[i]))
+                    {
+                        LogDebug($"Removing enemy {deathListTracker.Enemies[i]} from {deathListTracker.faction}.");
+                        deathListTracker.Enemies.Remove(deathListTracker.Enemies[i]);
+                    }
+                }
+            }
+
+            // doubtful this is needed...
+            var _ = new Dictionary<string, float>();
+            foreach (var kvp in Mod.Globals.WarStatusTracker.FullHomeContendedSystems)
+            {
+                if (!Mod.Settings.ImmuneToWar.Contains(kvp.Key))
+                {
+                    _.Add(kvp.Key, kvp.Value);
+                }
+                else
+                {
+                    LogDebug($"Removing {kvp.Key} from FullHomeContendedSystems, as they are immune to war.");
+                }
+            }
+
+            Mod.Globals.WarStatusTracker.FullHomeContendedSystems = _;
+        }
+
+        // if the war is missing systems, add them
+        private static void AddNewStarSystems()
+        {
+            for (var index = 0; index < Mod.Globals.Sim.StarSystems.Count; index++)
+            {
+                var system = Mod.Globals.Sim.StarSystems[index];
+                if (Mod.Settings.ImmuneToWar.Contains(Mod.Globals.Sim.StarSystems[index].OwnerValue.Name) ||
+                    Mod.Globals.WarStatusTracker.systems.Any(x => x.starSystem == system))
+                {
+                    continue;
+                }
+
+                LogDebug($"Trying to add {system.Name}, owner {system.OwnerValue.Name}.");
+                var systemStatus = new SystemStatus(system, system.OwnerValue.Name);
+                Mod.Globals.WarStatusTracker.systems.Add(systemStatus);
+                if (system.Tags.Contains("planet_other_pirate") && !system.Tags.Contains("planet_region_hyadesrim"))
+                {
+                    Mod.Globals.WarStatusTracker.FullPirateSystems.Add(system.Name);
+                    PiratesAndLocals.FullPirateListSystems.Add(systemStatus);
+                }
+
+                if (system.Tags.Contains("planet_region_hyadesrim") &&
+                    !Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(system.Name) &&
+                    (system.OwnerValue.Name == "NoFaction" || system.OwnerValue.Name == "Locals"))
+                    Mod.Globals.WarStatusTracker.HyadesRimGeneralPirateSystems.Add(system.Name);
+            }
+        }
+
+        private static void Spawn()
+        {
+            LogDebug("Spawning new instance...");
+            Mod.Globals.WarStatusTracker = new WarStatus();
+            PopulateLookupMaps();
+            LogDebug("New global state created.");
+            // TODO is this value unchanging?  this is wrong if not
+            Mod.Globals.WarStatusTracker.systemsByResources =
+                Mod.Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
+            if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
+            {
+                LogDebug($"Refreshing contracts at spawn ({Mod.Globals.Sim.CurSystem.Name}).");
+                var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
+                Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+                Mod.Globals.WarStatusTracker.StartGameInitialized = true;
+            }
+
+            SystemDifficulty();
+            Mod.Globals.WarStatusTracker.FirstTickInitialization = true;
+            Mod.Globals.WarStatusTracker.StartGameInitialized = false;
+            WarTick.Tick(true, true);
+        }
+
+        private static void DeserializeWar(string gawTag)
         {
             LogDebug("DeserializeWar");
-            var tag = Mod.Globals.Sim.CompanyTags.First(x => x.StartsWith("GalaxyAtWarSave{")).Substring(15);
+            var tag = gawTag.Substring(15);
             //File.WriteAllText("mods/GalaxyAtWar/tag.txt", tag);
             Mod.Globals.WarStatusTracker = JsonConvert.DeserializeObject<WarStatus>(tag);
             LogDebug($">>> Deserialization complete (Size after load: {tag.Length / 1024}kb)");
@@ -309,7 +328,7 @@ namespace GalaxyatWar
             }
         }
 
-        internal static void SerializeWar()
+        private static void SerializeWar()
         {
             LogDebug("SerializeWar");
             var gawTag = Mod.Globals.Sim.CompanyTags.FirstOrDefault(x => x.StartsWith("GalaxyAtWar"));
@@ -319,19 +338,21 @@ namespace GalaxyatWar
             LogDebug($">>> Serialization complete (object size: {gawTag.Length / 1024}kb)");
         }
 
-        public static void RebuildState()
+        private static void RebuildState()
         {
             LogDebug("RebuildState");
             HotSpots.ExternalPriorityTargets.Clear();
             HotSpots.FullHomeContendedSystems.Clear();
             HotSpots.HomeContendedSystems.Clear();
             var starSystemDictionary = Mod.Globals.Sim.StarSystemDictionary;
+
             // TODO make sure this is being updated elsewhere (should be but worth double-checking)
             Mod.Globals.WarStatusTracker.systemsByResources =
                 Mod.Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
-            SystemDifficulty();
 
+            SystemDifficulty();
             try
+
             {
                 if (Mod.Settings.ResetMap)
                 {
@@ -376,7 +397,7 @@ namespace GalaxyatWar
                             var tempList = systemDef.SystemShopItems;
                             tempList.Add(Mod.Settings.FactionShops[system.owner]);
 
-                            Traverse.Create(systemDef).Property("SystemShopItems").SetValue(systemDef.SystemShopItems);
+                            systemDef.SystemShopItems = systemDef.SystemShopItems;
                         }
 
                         if (systemDef.FactionShopItems != null)
@@ -411,7 +432,7 @@ namespace GalaxyatWar
 
                 foreach (var starSystem in Mod.Globals.WarStatusTracker.FullPirateSystems)
                 {
-                    PiratesAndLocals.FullPirateListSystems.Add(Mod.Globals.WarStatusTracker.systems.Find(x => x.name == starSystem));
+                    PiratesAndLocals.FullPirateListSystems.Add(SystemStatus.All[starSystem]);
                 }
 
                 foreach (var deathListTracker in Mod.Globals.WarStatusTracker.deathListTracker)
@@ -421,11 +442,10 @@ namespace GalaxyatWar
 
                 foreach (var defensiveFaction in Mod.Settings.DefensiveFactions)
                 {
-                    if (Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == defensiveFaction) == null)
+                    if (WarFaction.All[defensiveFaction] == null)
                         continue;
 
-                    var targetFaction = Mod.Globals.WarStatusTracker.warFactionTracker.Find(x => x.faction == defensiveFaction);
-
+                    var targetFaction = WarFaction.All[defensiveFaction];
                     if (targetFaction.AttackResources != 0)
                     {
                         targetFaction.DefensiveResources += targetFaction.AttackResources;
@@ -445,14 +465,13 @@ namespace GalaxyatWar
             }
         }
 
-        public static void ConvertToSave()
+        private static void ConvertToSave()
         {
             LogDebug("ConvertToSave");
             Mod.Globals.WarStatusTracker.ExternalPriorityTargets.Clear();
             Mod.Globals.WarStatusTracker.FullHomeContendedSystems.Clear();
             Mod.Globals.WarStatusTracker.HomeContendedSystems.Clear();
             Mod.Globals.WarStatusTracker.FullPirateSystems.Clear();
-
             foreach (var faction in HotSpots.ExternalPriorityTargets.Keys)
             {
                 Mod.Globals.WarStatusTracker.ExternalPriorityTargets.Add(faction, new List<string>());

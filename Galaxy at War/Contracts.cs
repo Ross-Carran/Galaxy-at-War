@@ -4,7 +4,6 @@ using BattleTech;
 using BattleTech.Data;
 using BattleTech.Framework;
 using Harmony;
-using static GalaxyatWar.Logger;
 
 namespace GalaxyatWar
 {
@@ -34,7 +33,7 @@ namespace GalaxyatWar
             var source = playableMaps.Select(map => map.Map.Weight);
             var activeMaps = new WeightedList<MapAndEncounters>(WeightedListType.SimpleRandom, playableMaps.ToList(), source.ToList());
             var next = activeMaps.GetNext();
-            LogDebug($"{system.Name} {difficultyRange.MinDifficulty}/{difficultyRange.MaxDifficulty} {potentialContracts.Count} {validParticipants.Count} {next._encounters.Count}");
+            FileLog.Log($"{system.Name} {difficultyRange.MinDifficulty}/{difficultyRange.MaxDifficulty} {potentialContracts.Count} {validParticipants.Count} {next._encounters.Count}");
             var mapEncounterContractData = Mod.Globals.Sim.FillMapEncounterContractData(system, difficultyRange, potentialContracts, validParticipants, next);
             system.SetCurrentContractFactions();
             var gameContext = new GameContext(Mod.Globals.Sim.Context);
@@ -43,7 +42,7 @@ namespace GalaxyatWar
                 mapEncounterContractData.FlatContracts.rootList.Count < 1)
             {
                 loops++;
-                LogDebug("Recursion...");
+                FileLog.Log("Recursion...");
                 if (loops > 10)
                 {
                     loops = 0;
@@ -134,7 +133,7 @@ namespace GalaxyatWar
             bool isGlobal,
             int difficulty)
         {
-            LogDebug("CreateTravelContract");
+            FileLog.Log("CreateTravelContract");
             var starSystem = context.GetObject(GameContextObjectTagEnum.TargetStarSystem) as StarSystem;
             var seed = Mod.Globals.Rng.Next(0, int.MaxValue);
             ovr.FullRehydrate();

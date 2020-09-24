@@ -1,8 +1,14 @@
+using System.Diagnostics;
+using BattleTech;
 using BattleTech.UI;
 using BattleTech.UI.TMProWrapper;
+using Harmony;
 using HBS.Extensions;
 using UnityEngine;
 using UnityEngine.UI;
+
+// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedType.Global
 
 // ReSharper disable StringLiteralTypo 
 // ReSharper disable ClassNeverInstantiated.Global
@@ -11,8 +17,8 @@ namespace GalaxyatWar
 {
     public class DeploymentIndicator
     {
-        private double counter;
-        private readonly GameObject playPauseButton;
+        private long counter;
+        internal readonly GameObject playPauseButton;
         private readonly GameObject hitBox;
         private readonly Image image;
         private readonly LocalizableText text;
@@ -28,6 +34,7 @@ namespace GalaxyatWar
             hitBox = parent.gameObject.FindFirstChildNamed("-HitboxOverlay-");
             image = cmdCenterBgFill.GetComponent<Image>();
             text = timeLineText.GetComponent<LocalizableText>();
+            FileLog.Log("Deployment Indicator constructed.");
         }
 
         internal void ShowDeploymentIndicator(bool isDeploymentRequired)
@@ -36,19 +43,29 @@ namespace GalaxyatWar
             {
                 counter++;
                 // SetActive is pretty expensive, so avoid doing it
-                if (isDeploymentRequired && playPauseButton.activeInHierarchy)
+                if (isDeploymentRequired && playPauseButton.activeSelf)
                 {
                     image.color = new Color(200, 0, 0);
                     text.text = "Deployment Required";
                     playPauseButton.SetActive(false);
                     hitBox.SetActive(false);
                 }
-                else if (!isDeploymentRequired && !playPauseButton.activeInHierarchy)
+                else if (!isDeploymentRequired && !playPauseButton.activeSelf)
                 {
                     image.color = new Color(0, 0, 0, 0.863f);
                     playPauseButton.SetActive(true);
                     hitBox.SetActive(true);
                 }
+            }
+        }
+
+        [HarmonyPatch(typeof(SimGameState), "SimGameUXCreatorLoaded")]
+        public class SimGameStateSimGameUXCreatorLoadedPatch
+        {
+            private static void Postfix()
+            {
+                FileLog.Log("SimGameStateSimGameUXCreatorLoadedPatch");
+                Mod.DeploymentIndicator = new DeploymentIndicator();
             }
         }
     }

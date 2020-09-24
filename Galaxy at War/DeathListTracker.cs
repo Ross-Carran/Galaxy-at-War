@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Harmony;
 using Newtonsoft.Json;
 
 namespace GalaxyatWar
@@ -35,7 +36,7 @@ namespace GalaxyatWar
 
         public DeathListTracker(string faction)
         {
-            Logger.LogDebug("DeathListTracker ctor: " + faction);
+            FileLog.Log("DeathListTracker ctor: " + faction);
             this.faction = faction;
             var factionDef = Mod.Globals.Sim.GetFactionDef(faction);
             All.Add(faction, this);

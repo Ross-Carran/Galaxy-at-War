@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
+using Harmony;
 using Newtonsoft.Json;
 
 namespace GalaxyatWar
@@ -42,6 +43,7 @@ namespace GalaxyatWar
         public int DeploymentTier = 0;
         public string OriginalOwner = null;
         internal static Dictionary<string, SystemStatus> All = new Dictionary<string, SystemStatus>();
+        internal List<float> maxValueList;
         private StarSystem starSystemBackingField;
 
         internal StarSystem starSystem
@@ -58,7 +60,7 @@ namespace GalaxyatWar
 
         public SystemStatus(StarSystem system, string faction)
         {
-            //  LogDebug("SystemStatus ctor");
+            //  FileLog.Log("SystemStatus ctor");
             name = system.Name;
             owner = faction;
             starSystem = system;
@@ -95,7 +97,7 @@ namespace GalaxyatWar
             }
             catch (Exception ex)
             {
-                Logger.Error(ex);
+                FileLog.Log(ex.ToString());
             }
         }
 

@@ -9,7 +9,6 @@ using HBS.Extensions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static GalaxyatWar.Logger;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable UnusedMember.Global
@@ -29,7 +28,7 @@ namespace GalaxyatWar
         {
             public static void Prefix(object data, ref string __state)
             {
-                if (Mod.Globals.WarStatusTracker == null || (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete")))
+                if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
                 var starSystem = (StarSystem) data;
@@ -67,7 +66,7 @@ namespace GalaxyatWar
         {
             try
             {
-                LogDebug("SetupRelationPanel");
+                FileLog.Log("SetupRelationPanel");
                 var dm = UIManager.Instance.dataManager;
                 var prefabName = UIManager.Instance.GetPrefabName<SGEventPanel>("");
                 var uiModule = (UIModule) dm.PooledInstantiate(
@@ -125,11 +124,11 @@ namespace GalaxyatWar
                 }
 
                 eventPanel.gameObject.SetActive(false);
-                LogDebug("RelationPanel created");
+                FileLog.Log("RelationPanel created");
             }
             catch (Exception ex)
             {
-                Error(ex);
+                FileLog.Log(ex.ToString());
             }
         }
 
@@ -142,7 +141,7 @@ namespace GalaxyatWar
                 if (!Mod.Settings.FactionNames.ContainsKey(tracker.faction) || Mod.Settings.HyadesNeverControl.Contains(tracker.faction)
                                                                             || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(tracker.faction))
                 {
-                    LogDebug($"faction {tracker.faction} doesn't exist in Mod.Mod.Settings.FactionNames, skipping...");
+                    FileLog.Log($"faction {tracker.faction} doesn't exist in Mod.Mod.Settings.FactionNames, skipping...");
                     continue;
                 }
 
@@ -170,7 +169,7 @@ namespace GalaxyatWar
                     if (!Mod.Settings.FactionNames.ContainsKey(enemy) || Mod.Settings.HyadesNeverControl.Contains(enemy)
                                                                       || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(enemy))
                     {
-                        LogDebug("Mod.Mod.Settings.FactionNames doesn't have " + enemy + " skipping...");
+                        FileLog.Log("Mod.Mod.Settings.FactionNames doesn't have " + enemy + " skipping...");
                         continue;
                     }
 
@@ -186,7 +185,7 @@ namespace GalaxyatWar
                     if (!Mod.Settings.FactionNames.ContainsKey(ally) || Mod.Settings.HyadesNeverControl.Contains(ally)
                                                                      || Mod.Globals.WarStatusTracker.InactiveTHRFactions.Contains(ally))
                     {
-                        LogDebug("Mod.Mod.Settings.FactionNames doesn't have " + ally + " skipping...");
+                        FileLog.Log("Mod.Mod.Settings.FactionNames doesn't have " + ally + " skipping...");
                         continue;
                     }
 
@@ -199,7 +198,7 @@ namespace GalaxyatWar
 
             sb.AppendLine("</line-height>");
             sb.AppendLine();
-            LogDebug("BuildRelationString");
+            FileLog.Log("BuildRelationString");
 
             // bug? in TMPro shits the bed on a long string with underlines
             if (AppDomain.CurrentDomain.GetAssemblies().Any(x => x.FullName.Contains("InnerSphereMap")))
@@ -220,7 +219,7 @@ namespace GalaxyatWar
             {
                 if (Mod.Globals.WarStatusTracker != null &&
                     Mod.Globals.Sim.TravelState == SimGameTravelStatus.IN_SYSTEM &&
-                    Mod.DeploymentIndicator != null)
+                    Mod.DeploymentIndicator?.playPauseButton != null)
                 {
                     Mod.DeploymentIndicator.ShowDeploymentIndicator(Mod.Globals.WarStatusTracker.Deployment && Mod.Globals.WarStatusTracker.EscalationDays <= 0);
                 }
@@ -245,11 +244,11 @@ namespace GalaxyatWar
                             UpdatePanelText();
                         }
 
-                        LogDebug("Event Panel " + eventPanel.gameObject.activeSelf);
+                        FileLog.Log("Event Panel " + eventPanel.gameObject.activeSelf);
                     }
                     catch (Exception ex)
                     {
-                        Error(ex);
+                        FileLog.Log(ex.ToString());
                     }
                 }
             }
@@ -349,11 +348,11 @@ namespace GalaxyatWar
                             MakeSystemNormal(__result, wasVisited);
                     }
 
-                    //LogDebug(Mod.timer.ElapsedTicks);
+                    //FileLog.Log(Mod.timer.ElapsedTicks);
                 }
                 catch (Exception ex)
                 {
-                    Error(ex);
+                    FileLog.Log(ex.ToString());
                 }
             }
         }
@@ -364,14 +363,14 @@ namespace GalaxyatWar
         {
             public static void Prefix()
             {
-                //LogDebug($"RefreshStarmap");
+                //FileLog.Log($"RefreshStarmap");
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 if (Mod.Globals.WarStatusTracker == null || sim.IsCampaign && !sim.CompanyTags.Contains("story_complete"))
                     return;
 
                 if (Mod.Globals.WarStatusTracker != null && !Mod.Globals.WarStatusTracker.StartGameInitialized)
                 {
-                    LogDebug($"Refreshing contracts at RefreshStarmap. ({Mod.Globals.Sim.CurSystem.Name})");
+                    FileLog.Log($"Refreshing contracts at RefreshStarmap. ({Mod.Globals.Sim.CurSystem.Name})");
                     var cmdCenter = UnityGameInstance.BattleTechGame.Simulation.RoomManager.CmdCenterRoom;
                     sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
                     Mod.Globals.WarStatusTracker.StartGameInitialized = true;
@@ -411,7 +410,7 @@ namespace GalaxyatWar
                     mesh.SetLayoutDirty();
                 }
 
-                if (Mod.Globals.WarStatusTracker == null || (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete")))
+                if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
                 SetFont(___LabelField, Mod.Globals.Font);

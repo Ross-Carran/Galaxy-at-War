@@ -1,7 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
+using Harmony;
 using Newtonsoft.Json;
 using static GalaxyatWar.Helpers;
 
@@ -38,7 +38,7 @@ namespace GalaxyatWar
         public string DeploymentEmployer = "Marik";
         public double DeploymentInfluenceIncrease = 1.0;
         public bool PirateDeployment = false;
-
+        public bool AbandonDeployment;
         public Dictionary<string, float> FullHomeContendedSystems = new Dictionary<string, float>();
         public List<string> HomeContendedSystems = new List<string>();
         public Dictionary<string, List<string>> ExternalPriorityTargets = new Dictionary<string, List<string>>();
@@ -59,7 +59,7 @@ namespace GalaxyatWar
 
         public WarStatus()
         {
-            Logger.LogDebug("WarStatus ctor");
+            FileLog.Log("WarStatus ctor");
             if (Mod.Settings.ISMCompatibility)
                 Mod.Settings.IncludedFactions = new List<string>(Mod.Settings.IncludedFactions_ISM);
 
@@ -99,7 +99,7 @@ namespace GalaxyatWar
                 warFaction.DefensiveResources += GetTotalDefensiveResources(system);
             }
 
-            Logger.LogDebug("WarFaction AR/DR set.");
+            FileLog.Log("WarFaction AR/DR set.");
             var maxAR = warFactionTracker.Select(x => x.AttackResources).Max();
             var maxDR = warFactionTracker.Select(x => x.DefensiveResources).Max();
 
@@ -132,7 +132,7 @@ namespace GalaxyatWar
                 }
             }
 
-            Logger.LogDebug("WarFaction bonus AR/DR set.");
+            FileLog.Log("WarFaction bonus AR/DR set.");
             if (!Mod.Settings.ISMCompatibility)
                 PirateResources = maxAR * Mod.Settings.FractionPirateResources + Mod.Settings.BonusPirateResources;
             else
@@ -140,7 +140,7 @@ namespace GalaxyatWar
 
             MinimumPirateResources = PirateResources;
             StartingPirateResources = PirateResources;
-            Logger.LogDebug("SystemStatus mass creation...");
+            FileLog.Log("SystemStatus mass creation...");
             systems = new List<SystemStatus>(Mod.Globals.Sim.StarSystems.Count);
             for (var index = 0; index < Mod.Globals.Sim.StarSystems.Count; index++)
             {
@@ -163,11 +163,11 @@ namespace GalaxyatWar
                     HyadesRimGeneralPirateSystems.Add(system.Name);
             }
 
-            Logger.LogDebug("Full pirate systems created.");
+            FileLog.Log("Full pirate systems created.");
             systems = systems.OrderBy(x => x.name).ToList();
             systemsByResources = systems.OrderBy(x => x.TotalResources).ToList();
             PrioritySystems = new List<string>(systems.Count);
-            Logger.LogDebug("SystemStatus ordered lists created.");
+            FileLog.Log("SystemStatus ordered lists created.");
         }
 
         [JsonConstructor]

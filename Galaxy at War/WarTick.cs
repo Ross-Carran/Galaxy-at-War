@@ -5,7 +5,6 @@ using Harmony;
 using UnityEngine;
 using static GalaxyatWar.Helpers;
 using static GalaxyatWar.Resource;
-using static GalaxyatWar.Logger;
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace GalaxyatWar
@@ -80,7 +79,7 @@ namespace GalaxyatWar
             }
 
             //Distribute Pirate Influence throughout the StarSystems
-            LogDebug("Processing pirates.");
+            FileLog.Log("Processing pirates.");
             PiratesAndLocals.CorrectResources();
             PiratesAndLocals.PiratesStealResources();
             PiratesAndLocals.CurrentPAResources = Mod.Globals.WarStatusTracker.PirateResources;
@@ -102,9 +101,10 @@ namespace GalaxyatWar
                 }
             }
 
-            LogDebug("Processing systems' influence.");
+            FileLog.Log("Processing systems' influence.");
             foreach (var systemStatus in systemStatuses)
             {
+                systemStatus.maxValueList = systemStatus.influenceTracker.Values.OrderByDescending(x => x).ToList();
                 systemStatus.PriorityAttack = false;
                 systemStatus.PriorityDefense = false;
                 if (Mod.Globals.WarStatusTracker.FirstTickInitialization)
@@ -161,7 +161,7 @@ namespace GalaxyatWar
             }
 
             Mod.Globals.WarStatusTracker.FirstTickInitialization = false;
-            LogDebug("Processing resource spending.");
+            FileLog.Log("Processing resource spending.");
             foreach (var warFaction in Mod.Globals.WarStatusTracker.warFactionTracker)
             {
                 DivideAttackResources(warFaction, useFullSet);
@@ -174,7 +174,7 @@ namespace GalaxyatWar
                 AllocateAttackResources(warFaction);
             }
 
-            LogDebug("Processing influence changes.");
+            FileLog.Log("Processing influence changes.");
             UpdateInfluenceFromAttacks(checkForSystemChange);
 
             //Increase War Escalation or decay defenses.
@@ -197,7 +197,7 @@ namespace GalaxyatWar
                 }
             }
 
-            LogDebug("Processing flipped systems.");
+            FileLog.Log("Processing flipped systems.");
             foreach (var system in Mod.Globals.WarStatusTracker.systems.Where(x => Mod.Globals.WarStatusTracker.SystemChangedOwners.Contains(x.name)))
             {
                 system.CurrentlyAttackedBy.Clear();
@@ -207,9 +207,9 @@ namespace GalaxyatWar
 
             if (Mod.Globals.WarStatusTracker.SystemChangedOwners.Count > 0)
             {
-                LogDebug($"Changed on {Mod.Globals.Sim.CurrentDate.ToShortDateString()}: {Mod.Globals.WarStatusTracker.SystemChangedOwners.Count} systems:");
+                FileLog.Log($"Changed on {Mod.Globals.Sim.CurrentDate.ToShortDateString()}: {Mod.Globals.WarStatusTracker.SystemChangedOwners.Count} systems:");
                 Mod.Globals.WarStatusTracker.SystemChangedOwners.OrderBy(x => x).Do(x =>
-                    LogDebug($"  {x}"));
+                    FileLog.Log($"  {x}"));
                 Mod.Globals.WarStatusTracker.SystemChangedOwners.Clear();
                 if (StarmapMod.eventPanel != null)
                 {

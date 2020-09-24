@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Harmony;
 using UnityEngine;
 
 // ReSharper disable InconsistentNaming
@@ -91,7 +92,7 @@ namespace GalaxyatWar
                 }
                 else
                 {
-                    Logger.LogDebug($"Pirate system {system.owner} doesn't exist in WarFaction.All");
+                    FileLog.Log($"Pirate system {system.owner} doesn't exist in WarFaction.All");
                 }
 
                 if (system.PirateActivity == 0)

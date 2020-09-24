@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Harmony;
 using UnityEngine;
-using static GalaxyatWar.Logger;
 using Random = UnityEngine.Random;
 
 // ReSharper disable ClassNeverInstantiated.Global
@@ -68,7 +68,7 @@ namespace GalaxyatWar
 
                     if (system == null)
                     {
-                        Log("CRITICAL:  No system found at AllocateAttackResources, aborting processing.");
+                        FileLog.Log("CRITICAL:  No system found at AllocateAttackResources, aborting processing.");
                         return;
                     }
 
@@ -110,10 +110,10 @@ namespace GalaxyatWar
                     var arFactor = Random.Range(Mod.Settings.MinimumResourceFactor, Mod.Settings.MaximumResourceFactor);
                     var spendAR = Mathf.Min(startingTargetFar * arFactor, targetFar);
                     spendAR = spendAR < 1 ? 1 : Math.Max(1 * Mod.Globals.SpendFactor, spendAR * Mod.Globals.SpendFactor);
-                    var maxValueList = system.influenceTracker.Values.OrderByDescending(x => x).ToList();
+
                     var pMaxValue = 200.0f;
-                    if (maxValueList.Count > 1)
-                        pMaxValue = maxValueList[1];
+                    if (system.maxValueList.Count > 1)
+                        pMaxValue = system.maxValueList[1];
 
                     var itValue = system.influenceTracker[warFaction.faction];
                     var basicAR = (float) (11 - system.DifficultyRating) / 2;
@@ -136,7 +136,6 @@ namespace GalaxyatWar
                 }
             }
         }
-
 
         public static void AllocateDefensiveResources(WarFaction warFaction)
         {
@@ -161,6 +160,8 @@ namespace GalaxyatWar
                 map.Add(defenseTarget, SystemStatus.All[defenseTarget]);
             }
 
+            var shuffledMap = map.OrderBy(x => Mod.Globals.Rng.Next()).ToList();
+            var index = 0;
             // spend and decrement defensiveResources
             while (defensiveResources > float.Epsilon)
             {
@@ -169,12 +170,10 @@ namespace GalaxyatWar
                 var drFactor = Random.Range(Mod.Settings.MinimumResourceFactor, Mod.Settings.MaximumResourceFactor);
                 var spendDr = Mathf.Min(startingDefensiveResources * drFactor, defensiveResources);
                 spendDr = spendDr < 1 ? 1 : Math.Max(1 * Mod.Globals.SpendFactor, spendDr * Mod.Globals.SpendFactor);
-
-                var systemStatus = map.GetRandomElement().Value;
-                if (systemStatus == null)
+                var systemStatus = shuffledMap[index++].Value;
+                if (index == shuffledMap.Count)
                 {
-                    LogDebug("NULL SystemStatus at AllocateDefensiveResources");
-                    return;
+                    index = 0;
                 }
 
                 if (systemStatus.Contended || Mod.Globals.WarStatusTracker.HotBox.Contains(systemStatus.name))
@@ -221,7 +220,7 @@ namespace GalaxyatWar
                 {
                     var diffRes = systemStatus.influenceTracker[highestFaction] / total - systemStatus.influenceTracker[faction] / total;
                     var bonusDefense = spendDr + (diffRes * total - Mod.Settings.TakeoverThreshold / 100 * total) / (Mod.Settings.TakeoverThreshold / 100 + 1);
-                    //LogDebug(bonusDefense);
+                    //FileLog.Log(bonusDefense);
                     if (100 * diffRes > Mod.Settings.TakeoverThreshold)
                         if (defensiveResources >= bonusDefense)
                         {

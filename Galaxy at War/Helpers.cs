@@ -5,12 +5,8 @@ using System.Linq;
 using BattleTech;
 using BattleTech.Framework;
 using BattleTech.UI;
-using BattleTech.UI.TMProWrapper;
 using Harmony;
-using HBS.Extensions;
 using UnityEngine;
-using UnityEngine.UI;
-using static GalaxyatWar.Logger;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable ClassNeverInstantiated.Global
@@ -127,7 +123,7 @@ namespace GalaxyatWar
                 }
                 catch (Exception ex)
                 {
-                    Error(ex);
+                    FileLog.Log(ex.ToString());
                 }
             }
         }
@@ -226,7 +222,7 @@ namespace GalaxyatWar
                 WarFaction.All.TryGetValue(starSystem.OwnerValue.Name, out var warFac);
                 if (warFac == null)
                 {
-                    Error($"Can't find WarFaction for {starSystem.OwnerValue.Name}.");
+                    FileLog.Log($"Can't find WarFaction for {starSystem.OwnerValue.Name}.");
                     return;
                 }
 
@@ -234,10 +230,11 @@ namespace GalaxyatWar
                 SystemStatus.All.TryGetValue(starSystem.Name, out var warSystem);
                 if (warSystem == null)
                 {
-                    Error("Can't find " + starSystem.Name);
-                    Error(new StackTrace());
+                    FileLog.Log("Can't find " + starSystem.Name);
+                    FileLog.Log(new StackTrace().ToString());
                     return;
                 }
+
                 var ownerNeighborSystems = warSystem.neighborSystems;
                 ownerNeighborSystems.Clear();
                 if (Mod.Globals.Sim.Starmap.GetAvailableNeighborSystem(starSystem).Count == 0)
@@ -274,7 +271,7 @@ namespace GalaxyatWar
             }
             catch (Exception ex)
             {
-                Error(ex);
+                FileLog.Log(ex.ToString());
             }
         }
 
@@ -462,17 +459,17 @@ namespace GalaxyatWar
                     }
                     else
                     {
-                        Error($"deathListTracker for {oldFaction} is missing faction {faction}, ignoring.");
+                        FileLog.Log($"deathListTracker for {oldFaction} is missing faction {faction}, ignoring.");
                     }
                 }
                 else
                 {
-                    Error($"DeathListTracker not found for {oldFaction}");
+                    FileLog.Log($"DeathListTracker not found for {oldFaction}");
                 }
             }
             catch (Exception ex)
             {
-                Error(ex);
+                FileLog.Log(ex.ToString());
             }
 
             try
@@ -500,7 +497,7 @@ namespace GalaxyatWar
             }
             catch (Exception ex)
             {
-                Error(ex);
+                FileLog.Log(ex.ToString());
             }
         }
 
@@ -548,10 +545,12 @@ namespace GalaxyatWar
             if (checkForSystemChange)
                 Mod.Globals.WarStatusTracker.LostSystems.Clear();
 
-            //LogDebug($"Updating influence for {Mod.Globals.WarStatusTracker.SystemStatuses.Count.ToString()} systems");
+            //FileLog.Log($"Updating influence for {Mod.Globals.WarStatusTracker.SystemStatuses.Count.ToString()} systems");
             foreach (var systemStatus in Mod.Globals.WarStatusTracker.systems)
             {
+                // todo move instantiation out of loop?
                 var tempDict = new Dictionary<string, float>();
+                tempDict.Clear();
                 var totalInfluence = systemStatus.influenceTracker.Values.Sum();
                 var highest = 0f;
                 var highestFaction = systemStatus.owner;
@@ -590,8 +589,10 @@ namespace GalaxyatWar
                 }
 
                 //Local Government can take a system.
-                if (systemStatus.owner != "Locals" && systemStatus.OriginalOwner == "Locals" &&
-                    (highestFaction == "Locals" && systemStatus.influenceTracker[highestFaction] >= 75))
+                if (systemStatus.owner != "Locals" &&
+                    systemStatus.OriginalOwner == "Locals" &&
+                    highestFaction == "Locals" &&
+                    systemStatus.influenceTracker[highestFaction] >= 75)
                 {
                     ChangeSystemOwnership(starSystem, "Locals", true);
                     systemStatus.Contended = false;
@@ -627,12 +628,12 @@ namespace GalaxyatWar
         public static void RefreshContractsEmployersAndTargets(SystemStatus systemStatus)
         {
             var starSystem = systemStatus.starSystem;
-            //LogDebug("RefreshContracts for " + starSystem.Name);
+            //FileLog.Log("RefreshContracts for " + starSystem.Name);
             if (Mod.Globals.WarStatusTracker.HotBox.Contains(starSystem.Name) ||
                 starSystem.Tags.Contains("planet_region_hyadesrim") &&
                 (starSystem.OwnerDef.Name == "Locals" || starSystem.OwnerDef.Name == "NoFaction"))
             {
-                LogDebug("Skipping HotBox or THR Neutrals");
+                FileLog.Log("Skipping HotBox or THR Neutrals");
                 return;
             }
 
@@ -719,12 +720,12 @@ namespace GalaxyatWar
             var targetSystem = SystemStatus.All[system.Name];
             if (targetSystem == null)
             {
-                LogDebug($"null systemStatus {system.Name} at DeltaInfluence");
+                FileLog.Log($"null systemStatus {system.Name} at DeltaInfluence");
             }
 
             if (targetSystem?.influenceTracker.Count == 0)
             {
-                LogDebug("Empty influenceTracker.");
+                FileLog.Log("Empty influenceTracker.");
             }
 
             float maximumInfluence;
@@ -781,7 +782,7 @@ namespace GalaxyatWar
             var warSystem = SystemStatus.All[system.Name];
             if (warSystem == null)
             {
-                LogDebug($"null systemStatus {system.Name} at WillSystemFlip");
+                FileLog.Log($"null systemStatus {system.Name} at WillSystemFlip");
             }
 
             var tempIt = new Dictionary<string, float>(warSystem.influenceTracker);
@@ -1082,22 +1083,16 @@ namespace GalaxyatWar
             var influenceTracker = systemStatus.influenceTracker;
             var owner = influenceTracker.First().Key;
             var second = influenceTracker.Skip(1).First().Key;
-            LogDebug(0);
             var contract = Contracts.GenerateContract(system, 2, 2, owner);
             contracts.Add(contract);
-            LogDebug(1);
             contract = Contracts.GenerateContract(system, 4, 4, owner);
             contracts.Add(contract);
-            LogDebug(2);
             contract = Contracts.GenerateContract(system, 2, 2, second);
             contracts.Add(contract);
-            LogDebug(3);
             contract = Contracts.GenerateContract(system, 4, 4, second);
             contracts.Add(contract);
-            LogDebug(4);
             contract = Contracts.GenerateContract(system, 6, 6, Mod.Globals.IncludedFactions.Where(x => x != "NoFaction").GetRandomElement());
             contracts.Add(contract);
-            LogDebug(5);
             Mod.Globals.Sim.CurSystem.activeSystemContracts = contracts;
         }
 
@@ -1154,6 +1149,118 @@ namespace GalaxyatWar
         {
             const int variance = 2;
             return starSystem.Def.GetDifficulty(SimGameState.SimGameType.CAREER) + Mod.Globals.Rng.Next(-variance, variance + 1);
+        }
+
+        // this beauty is from BetterLog from CptMoore's MechEngineer - thanks!
+        // https://github.com/BattletechModders/MechEngineer/tree/master/source/Features/BetterLog
+        internal static string GetFormattedStartupTime()
+        {
+            var value = TimeSpan.FromSeconds(Time.realtimeSinceStartup);
+            var formatted = $"[{value.Hours:D2}:{value.Minutes:D2}:{value.Seconds:D2}.{value.Milliseconds:D3}]";
+            return formatted;
+        }
+
+
+        // need a new patch that will check this new global and reset the state - otherwise you could click "Yes" then back out and have your deployment state wiped
+        // if a contract is actually launched - reset
+        // 
+        [HarmonyPatch(typeof(Contract), "Accept")]
+        public class ContractAcceptPatch
+        {
+            private static void Postfix()
+            {
+                if (Mod.Globals.WarStatusTracker.AbandonDeployment)
+                {
+                    FileLog.Log("Finalizing abandoned deployment...");
+                    Mod.Globals.WarStatusTracker.AbandonDeployment = false;
+                    CalculateRepLoss();
+                    ResetDeploymentState();
+                }
+            }
+        }
+
+        internal static bool ShowAndConfirmAbandonDeployment()
+        {
+            FileLog.Log("AbandonDeploymentWarning");
+            if (Mod.Globals.WarStatusTracker.Deployment)
+            {
+                const string primaryButtonText = "Break Deployment";
+                const string message = "WARNING: This action will break your current deployment. Your reputation with the employer and the MRB will be negatively impacted.";
+                PauseNotification.Show("Navigation Change", message, Mod.Globals.Sim.GetCrewPortrait(SimGameCrew.Crew_Sumire), string.Empty, true, () => { Mod.Globals.WarStatusTracker.AbandonDeployment = true; }, primaryButtonText, Cleanup, "Cancel");
+                Cleanup();
+                FileLog.Log("Abandoning deployment...");
+                return false;
+            }
+
+            return true;
+        }
+
+        internal static void Cleanup()
+        {
+            UIManager.Instance.ResetFader(UIManagerRootType.PopupRoot);
+            Mod.Globals.Sim.Starmap.Screen.AllowInput(true);
+        }
+
+        internal static void HandleNavigation()
+        {
+            Mod.Globals.Sim.Starmap.SetActivePath();
+            Mod.Globals.Sim.SetSimRoomState(DropshipLocation.SHIP);
+            Mod.Globals.Sim.Starmap.Screen.AllowInput(false);
+            UIManager.Instance.SetFaderColor(UIManager.Instance.UILookAndColorConstants.PopupBackfill, UIManagerFader.FadePosition.FadeInBack, UIManagerRootType.PopupRoot);
+        }
+
+        internal static void ResetDeploymentState()
+        {
+            if (Mod.Globals.WarStatusTracker.HotBox.Count == 2)
+            {
+                Mod.Globals.WarStatusTracker.HotBox.RemoveAt(0);
+            }
+            else if (Mod.Globals.WarStatusTracker.HotBox.Count != 0)
+            {
+                Mod.Globals.WarStatusTracker.HotBox.Clear();
+            }
+
+            Mod.Globals.WarStatusTracker.Deployment = false;
+            Mod.Globals.WarStatusTracker.PirateDeployment = false;
+            Mod.Globals.WarStatusTracker.DeploymentInfluenceIncrease = 1.0;
+            Mod.Globals.WarStatusTracker.Escalation = false;
+            Mod.Globals.WarStatusTracker.EscalationDays = 0;
+            var systemStatus = SystemStatus.All[Mod.Globals.Sim.CurSystem.Name];
+            RefreshContractsEmployersAndTargets(systemStatus);
+            if (Mod.Globals.WarStatusTracker.HotBox.Count == 0)
+                Mod.Globals.WarStatusTracker.HotBoxTravelling = false;
+
+            if (Mod.Globals.WarStatusTracker.EscalationOrder != null)
+            {
+                Mod.Globals.WarStatusTracker.EscalationOrder.SetCost(0);
+                var activeItems = Mod.Globals.TaskTimelineWidget.ActiveItems;
+                if (activeItems.TryGetValue(Mod.Globals.WarStatusTracker.EscalationOrder, out var taskManagementElement))
+                {
+                    taskManagementElement.UpdateItem(0);
+                }
+            }
+        }
+
+        internal static void CalculateRepLoss()
+        {
+            Mod.Globals.WarStatusTracker.Deployment = false;
+            Mod.Globals.WarStatusTracker.PirateDeployment = false;
+            if (Mod.Globals.Sim.GetFactionDef(Mod.Globals.WarStatusTracker.DeploymentEmployer).FactionValue.DoesGainReputation)
+            {
+                var employerRepBadFaithMod = Mod.Globals.Sim.Constants.Story.EmployerRepBadFaithMod;
+                int num;
+
+                if (Mod.Settings.ChangeDifficulty)
+                    num = Mathf.RoundToInt(Mod.Globals.Sim.CurSystem.Def.GetDifficulty(SimGameState.SimGameType.CAREER) * employerRepBadFaithMod);
+                else
+                    num = Mathf.RoundToInt((Mod.Globals.Sim.CurSystem.Def.DefaultDifficulty + Mod.Globals.Sim.GlobalDifficulty) * employerRepBadFaithMod);
+
+                if (num != 0)
+                {
+                    Mod.Globals.Sim.SetReputation(Mod.Globals.Sim.GetFactionDef(Mod.Globals.WarStatusTracker.DeploymentEmployer).FactionValue, num);
+                    Mod.Globals.Sim.SetReputation(Mod.Globals.Sim.GetFactionValueFromString("faction_MercenaryReviewBoard"), num);
+                }
+            }
         }
     }
 }

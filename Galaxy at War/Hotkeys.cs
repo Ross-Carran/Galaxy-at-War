@@ -4,8 +4,7 @@ using System.Linq;
 using BattleTech;
 using Harmony;
 using UnityEngine;
-using static GalaxyatWar.Logger;
-
+// ReSharper disable UnusedType.Global 
 // ReSharper disable InconsistentNaming
 
 namespace GalaxyatWar
@@ -32,32 +31,31 @@ namespace GalaxyatWar
                     var contractEmployers = starSystem.Def.contractEmployerIDs;
                     var contractTargets = starSystem.Def.contractTargetIDs;
                     var owner = starSystem.OwnerValue;
-                    LogDebug($"{starSystem.Name} owned by {owner.Name}");
-                    LogDebug($"Employers in {starSystem.Name}");
-                    contractEmployers.Do(x => LogDebug($"  {x}"));
-                    LogDebug($"Targets in {starSystem.Name}");
-                    contractTargets.Do(x => LogDebug($"  {x}"));
-                    Mod.Globals.Sim.GetAllCurrentlySelectableContracts().Do(x => LogDebug($"{x.Name,-25} {x.Difficulty} ({x.Override.GetUIDifficulty()})"));
+                    FileLog.Log($"{starSystem.Name} owned by {owner.Name}");
+                    FileLog.Log($"Employers in {starSystem.Name}");
+                    contractEmployers.Do(x => FileLog.Log($"  {x}"));
+                    FileLog.Log($"Targets in {starSystem.Name}");
+                    contractTargets.Do(x => FileLog.Log($"  {x}"));
+                    Mod.Globals.Sim.GetAllCurrentlySelectableContracts().Do(x => FileLog.Log($"{x.Name,-25} {x.Difficulty} ({x.Override.GetUIDifficulty()})"));
                     var systemStatus = SystemStatus.All[starSystem.Name];
                     var employers = systemStatus.influenceTracker.OrderByDescending(x => x.Value).Select(x => x.Key).Take(2);
                     foreach (var faction in Mod.Globals.IncludedFactions.Intersect(employers))
                     {
-                        LogDebug($"{faction} Enemies:");
-                        FactionEnumeration.GetFactionByName(faction).factionDef?.Enemies.Distinct().Do(x => LogDebug($"  {x}"));
-                        LogDebug($"{faction} Allies:");
-                        FactionEnumeration.GetFactionByName(faction).factionDef?.Allies.Do(x => LogDebug($"  {x}"));
-                        Log("");
+                        FileLog.Log($"{faction} Enemies:");
+                        FactionEnumeration.GetFactionByName(faction).factionDef?.Enemies.Distinct().Do(x => FileLog.Log($"  {x}"));
+                        FileLog.Log($"{faction} Allies:");
+                        FactionEnumeration.GetFactionByName(faction).factionDef?.Allies.Do(x => FileLog.Log($"  {x}"));
                     }
 
-                    LogDebug("Player allies:");
+                    FileLog.Log("Player allies:");
                     foreach (var faction in Mod.Globals.Sim.AlliedFactions)
                     {
-                        LogDebug($"  {faction}");
+                        FileLog.Log($"  {faction}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Error(ex);
+                    FileLog.Log(ex.ToString());
                 }
             }
 
@@ -76,17 +74,21 @@ namespace GalaxyatWar
             if (hotkeyT)
             {
                 const int loops = 100;
-                LogDebug($"Running {loops} full ticks.");
+                FileLog.Log($"Running {loops} full ticks.");
                 for (var i = 0; i < loops; i++)
                 {
-                    LogDebug("Tick " + $"{i,3}...");
+                    FileLog.Log("Tick " + $"{i,3}...");
                     try
                     {
+                        
+                        WarTick.Tick(true, false);
+                        WarTick.Tick(true, false);
+                        WarTick.Tick(true, false);
                         WarTick.Tick(true, true);
                     }
                     catch (Exception ex)
                     {
-                        Error(ex);
+                        FileLog.Log(ex.ToString());
                     }
                 }
             }

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Diagnostics;
 using System.Linq;
 using BattleTech;
 using BattleTech.Framework;
@@ -9,7 +9,6 @@ using Harmony;
 using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
-using static GalaxyatWar.Logger;
 using static GalaxyatWar.Helpers;
 
 // ReSharper disable UnusedType.Global
@@ -34,8 +33,7 @@ namespace GalaxyatWar
                     Mod.Globals = new Globals();
                     PopulateFactions();
                     RePopulateMaps = true;
-                    Mod.DeploymentIndicator = new DeploymentIndicator();
-                    LogDebug("State reset.");
+                    FileLog.Log("State reset.");
                 }
             }
         }
@@ -45,31 +43,25 @@ namespace GalaxyatWar
         {
             private static void Postfix(Starmap __instance)
             {
-                LogDebug("StarmapPopulateMapPatch");
-                if (RePopulateMaps)
-                {
-                    PopulateLookupMaps();
-                    RePopulateMaps = false;
-                }
-
+                FileLog.Log("StarmapPopulateMapPatch");
                 if (Mod.Globals.ModInitialized)
                 {
                     return;
                 }
 
-                LogDebug("Initializing...");
+                FileLog.Log("Initializing...");
                 Mod.Globals.Sim = Mod.Globals.Sim ?? __instance.sim;
                 Mod.Globals.SimGameInterruptManager = Mod.Globals.Sim.InterruptQueue;
                 if (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                 {
-                    LogDebug("Aborting GaW loading.");
+                    FileLog.Log("Aborting GaW loading.");
                     return;
                 }
 
                 SetFont();
                 if (Mod.Settings.ResetMap)
                 {
-                    LogDebug("Resetting map due to settings.");
+                    FileLog.Log("Resetting map due to settings.");
                     Spawn();
                     return;
                 }
@@ -79,9 +71,9 @@ namespace GalaxyatWar
                 if (!string.IsNullOrEmpty(gawTag))
                 {
                     DeserializeWar(gawTag);
-                    LogDebug("Validating state...");
+                    FileLog.Log("Validating state...");
                     ValidateState();
-                    LogDebug("Populating lookup maps...");
+                    FileLog.Log("Populating lookup maps...");
                     PopulateLookupMaps();
 
                     // try to recover from negative DR
@@ -97,8 +89,8 @@ namespace GalaxyatWar
 
                     if (Mod.Globals.WarStatusTracker.systems.Count == 0)
                     {
-                        LogDebug("Found tag but it's broken and being respawned:");
-                        LogDebug($"{gawTag.Substring(0, 500)}");
+                        FileLog.Log("Found tag but it's broken and being respawned:");
+                        FileLog.Log($"{gawTag.Substring(0, 500)}");
                         Spawn();
                     }
                     else
@@ -108,7 +100,7 @@ namespace GalaxyatWar
                     }
 
                     // copied from WarStatus - establish any systems that are new
-                    LogDebug("Adding any new StarSystems...");
+                    FileLog.Log("Adding any new StarSystems...");
                     AddNewStarSystems();
                 }
                 else
@@ -116,8 +108,14 @@ namespace GalaxyatWar
                     Spawn();
                 }
 
-                Mod.DeploymentIndicator = new DeploymentIndicator();
-                LogDebug("Initialization complete.");
+                if (RePopulateMaps)
+                {
+                    PopulateLookupMaps();
+                    RePopulateMaps = false;
+                }
+
+                //Mod.DeploymentIndicator = new DeploymentIndicator();
+                FileLog.Log("Initialization complete.");
                 Mod.Globals.ModInitialized = true;
             }
         }
@@ -193,7 +191,7 @@ namespace GalaxyatWar
                     var systemStatus = Mod.Globals.WarStatusTracker.systems[index];
                     if (Mod.Settings.ImmuneToWar.Contains(systemStatus.OriginalOwner))
                     {
-                        LogDebug($"Removed: {systemStatus.starSystem.Name,-15} -> Immune to war, owned by {systemStatus.starSystem.OwnerValue.Name}.");
+                        FileLog.Log($"Removed: {systemStatus.starSystem.Name,-15} -> Immune to war, owned by {systemStatus.starSystem.OwnerValue.Name}.");
                         Mod.Globals.WarStatusTracker.systems.Remove(systemStatus);
                     }
                 }
@@ -204,14 +202,14 @@ namespace GalaxyatWar
             {
                 if (deathListTracker.Enemies.Any(x => Mod.Settings.ImmuneToWar.Contains(x)))
                 {
-                    LogDebug($"Pruning immune factions from deathListTracker of {deathListTracker.faction}...");
+                    FileLog.Log($"Pruning immune factions from deathListTracker of {deathListTracker.faction}...");
                 }
 
                 for (var i = 0; i < deathListTracker.Enemies.Count; i++)
                 {
                     if (Mod.Settings.ImmuneToWar.Contains(deathListTracker.Enemies[i]))
                     {
-                        LogDebug($"Removing enemy {deathListTracker.Enemies[i]} from {deathListTracker.faction}.");
+                        FileLog.Log($"Removing enemy {deathListTracker.Enemies[i]} from {deathListTracker.faction}.");
                         deathListTracker.Enemies.Remove(deathListTracker.Enemies[i]);
                     }
                 }
@@ -227,7 +225,7 @@ namespace GalaxyatWar
                 }
                 else
                 {
-                    LogDebug($"Removing {kvp.Key} from FullHomeContendedSystems, as they are immune to war.");
+                    FileLog.Log($"Removing {kvp.Key} from FullHomeContendedSystems, as they are immune to war.");
                 }
             }
 
@@ -246,7 +244,7 @@ namespace GalaxyatWar
                     continue;
                 }
 
-                LogDebug($"Trying to add {system.Name}, owner {system.OwnerValue.Name}.");
+                FileLog.Log($"Trying to add {system.Name}, owner {system.OwnerValue.Name}.");
                 var systemStatus = new SystemStatus(system, system.OwnerValue.Name);
                 Mod.Globals.WarStatusTracker.systems.Add(systemStatus);
                 if (system.Tags.Contains("planet_other_pirate") && !system.Tags.Contains("planet_region_hyadesrim"))
@@ -264,16 +262,17 @@ namespace GalaxyatWar
 
         private static void Spawn()
         {
-            LogDebug("Spawning new instance...");
+            FileLog.Log("Spawning new instance...");
+            FileLog.Log($"Spawn: {Mod.DeploymentIndicator?.playPauseButton == null}");
             Mod.Globals.WarStatusTracker = new WarStatus();
             PopulateLookupMaps();
-            LogDebug("New global state created.");
+            FileLog.Log("New global state created.");
             // TODO is this value unchanging?  this is wrong if not
             Mod.Globals.WarStatusTracker.systemsByResources =
                 Mod.Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
             if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
             {
-                LogDebug($"Refreshing contracts at spawn ({Mod.Globals.Sim.CurSystem.Name}).");
+                FileLog.Log($"Refreshing contracts at spawn ({Mod.Globals.Sim.CurSystem.Name}).");
                 var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
                 Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
                 Mod.Globals.WarStatusTracker.StartGameInitialized = true;
@@ -283,15 +282,17 @@ namespace GalaxyatWar
             Mod.Globals.WarStatusTracker.FirstTickInitialization = true;
             Mod.Globals.WarStatusTracker.StartGameInitialized = false;
             WarTick.Tick(true, true);
+            FileLog.Log($"Spawn: {Mod.DeploymentIndicator?.playPauseButton == null}");
         }
 
         private static void DeserializeWar(string gawTag)
         {
-            LogDebug("DeserializeWar");
+            FileLog.Log("DeserializeWar");
             var tag = gawTag.Substring(15);
             //File.WriteAllText("mods/GalaxyAtWar/tag.txt", tag);
             Mod.Globals.WarStatusTracker = JsonConvert.DeserializeObject<WarStatus>(tag);
-            LogDebug($">>> Deserialization complete (Size after load: {tag.Length / 1024}kb)");
+            FileLog.Log($">>> Deserialization complete (Size after load: {tag.Length / 1024}kb)");
+            FileLog.Log($"DeserializeWar: {Mod.DeploymentIndicator?.playPauseButton == null}");
         }
 
         [HarmonyPatch(typeof(SimGameState), "Dehydrate")]
@@ -299,7 +300,7 @@ namespace GalaxyatWar
         {
             public static void Prefix(SimGameState __instance)
             {
-                LogDebug("Dehydrate");
+                FileLog.Log("Dehydrate");
                 Mod.Globals.Sim = __instance;
                 if (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
@@ -330,17 +331,17 @@ namespace GalaxyatWar
 
         private static void SerializeWar()
         {
-            LogDebug("SerializeWar");
+            FileLog.Log("SerializeWar");
             var gawTag = Mod.Globals.Sim.CompanyTags.FirstOrDefault(x => x.StartsWith("GalaxyAtWar"));
             Mod.Globals.Sim.CompanyTags.Remove(gawTag);
             gawTag = "GalaxyAtWarSave" + JsonConvert.SerializeObject(Mod.Globals.WarStatusTracker);
             Mod.Globals.Sim.CompanyTags.Add(gawTag);
-            LogDebug($">>> Serialization complete (object size: {gawTag.Length / 1024}kb)");
+            FileLog.Log($">>> Serialization complete (object size: {gawTag.Length / 1024}kb)");
         }
 
         private static void RebuildState()
         {
-            LogDebug("RebuildState");
+            FileLog.Log("RebuildState");
             HotSpots.ExternalPriorityTargets.Clear();
             HotSpots.FullHomeContendedSystems.Clear();
             HotSpots.HomeContendedSystems.Clear();
@@ -371,7 +372,7 @@ namespace GalaxyatWar
                     }
                     else
                     {
-                        LogDebug($"BOMB {system.name} not in StarSystemDictionary, removing it from WarStatusTracker.systems");
+                        FileLog.Log($"BOMB {system.name} not in StarSystemDictionary, removing it from WarStatusTracker.systems");
                         Mod.Globals.WarStatusTracker.systems.Remove(system);
                         continue;
                     }
@@ -461,13 +462,13 @@ namespace GalaxyatWar
             }
             catch (Exception ex)
             {
-                Error(ex);
+                FileLog.Log(ex.ToString());
             }
         }
 
         private static void ConvertToSave()
         {
-            LogDebug("ConvertToSave");
+            FileLog.Log("ConvertToSave");
             Mod.Globals.WarStatusTracker.ExternalPriorityTargets.Clear();
             Mod.Globals.WarStatusTracker.FullHomeContendedSystems.Clear();
             Mod.Globals.WarStatusTracker.HomeContendedSystems.Clear();

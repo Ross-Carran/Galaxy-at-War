@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using BattleTech;
+using Harmony;
 using Newtonsoft.Json;
 
 namespace GalaxyatWar
@@ -67,7 +67,7 @@ namespace GalaxyatWar
 
         public WarFaction(string faction)
         {
-            Logger.LogDebug("WarFaction ctor: " + faction);
+            FileLog.Log("WarFaction ctor: " + faction);
             this.faction = faction;
             GainedSystem = false;
             LostSystem = false;

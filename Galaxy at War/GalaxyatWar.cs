@@ -14,7 +14,7 @@ namespace GalaxyatWar
     {
         public static void Init(string modDir, string settings)
         {
-            // read settings
+            // read settings                                                                                                                                                                                                                              B
             try
             {
                 Mod.Settings = JsonConvert.DeserializeObject<ModSettings>(settings);
@@ -25,18 +25,17 @@ namespace GalaxyatWar
                 Mod.Settings = new ModSettings();
             }
 
-            Logger.Clear();
-            Logger.LogDebug("GaW Starting up...");
+            FileLog.Log("GaW Starting up...");
 
             foreach (var value in Mod.Settings.GetType().GetFields())
             {
                 var v = value.GetValue(Mod.Settings);
-                Logger.LogDebug($"{value.Name}: {v}");
+                FileLog.Log($"{value.Name}: {v}");
                 if (v is List<string> list)
                 {
                     foreach (var item in list)
                     {
-                        Logger.LogDebug($"  {item}");
+                        FileLog.Log($"  {item}");
                     }
                 }
             }

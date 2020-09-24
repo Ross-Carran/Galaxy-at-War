@@ -1160,45 +1160,31 @@ namespace GalaxyatWar
             return formatted;
         }
 
-
-        // need a new patch that will check this new global and reset the state - otherwise you could click "Yes" then back out and have your deployment state wiped
-        // if a contract is actually launched - reset
-        // 
-        [HarmonyPatch(typeof(Contract), "Accept")]
-        public class ContractAcceptPatch
-        {
-            private static void Postfix()
-            {
-                if (Mod.Globals.WarStatusTracker.AbandonDeployment)
-                {
-                    FileLog.Log("Finalizing abandoned deployment...");
-                    Mod.Globals.WarStatusTracker.AbandonDeployment = false;
-                    CalculateRepLoss();
-                    ResetDeploymentState();
-                }
-            }
-        }
-
         internal static bool ShowAndConfirmAbandonDeployment()
         {
             FileLog.Log("AbandonDeploymentWarning");
-            if (Mod.Globals.WarStatusTracker.Deployment)
+            if (Mod.Globals.WarStatusTracker.Deployment) // just apply the effect
             {
                 const string primaryButtonText = "Break Deployment";
                 const string message = "WARNING: This action will break your current deployment. Your reputation with the employer and the MRB will be negatively impacted.";
-                PauseNotification.Show("Navigation Change", message, Mod.Globals.Sim.GetCrewPortrait(SimGameCrew.Crew_Sumire), string.Empty, true, () => { Mod.Globals.WarStatusTracker.AbandonDeployment = true; }, primaryButtonText, Cleanup, "Cancel");
-                Cleanup();
-                FileLog.Log("Abandoning deployment...");
+                PauseNotification.Show("Navigation Change", message, Mod.Globals.Sim.GetCrewPortrait(SimGameCrew.Crew_Sumire), string.Empty, true, ProcessCancelledDeployment, primaryButtonText, Cleanup, "Cancel");
                 return false;
             }
 
             return true;
         }
 
-        internal static void Cleanup()
+        private static void Cleanup()
         {
+            Mod.Globals.Sim.RoomManager.CmdCenterRoom.StartContractScreen();
             UIManager.Instance.ResetFader(UIManagerRootType.PopupRoot);
             Mod.Globals.Sim.Starmap.Screen.AllowInput(true);
+        }
+
+        private static void ProcessCancelledDeployment()
+        {
+            ResetDeploymentState();
+            ReduceReputation();
         }
 
         internal static void HandleNavigation()
@@ -1241,10 +1227,9 @@ namespace GalaxyatWar
             }
         }
 
-        internal static void CalculateRepLoss()
+        // BUG this isn't working at all
+        internal static void ReduceReputation()
         {
-            Mod.Globals.WarStatusTracker.Deployment = false;
-            Mod.Globals.WarStatusTracker.PirateDeployment = false;
             if (Mod.Globals.Sim.GetFactionDef(Mod.Globals.WarStatusTracker.DeploymentEmployer).FactionValue.DoesGainReputation)
             {
                 var employerRepBadFaithMod = Mod.Globals.Sim.Constants.Story.EmployerRepBadFaithMod;

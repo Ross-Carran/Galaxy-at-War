@@ -38,7 +38,6 @@ namespace GalaxyatWar
         public string DeploymentEmployer = "Marik";
         public double DeploymentInfluenceIncrease = 1.0;
         public bool PirateDeployment = false;
-        public bool AbandonDeployment;
         public Dictionary<string, float> FullHomeContendedSystems = new Dictionary<string, float>();
         public List<string> HomeContendedSystems = new List<string>();
         public Dictionary<string, List<string>> ExternalPriorityTargets = new Dictionary<string, List<string>>();

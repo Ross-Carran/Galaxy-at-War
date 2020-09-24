@@ -8,8 +8,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // ReSharper disable InconsistentNaming
-// ReSharper disable UnusedType.Global
-
+// ReSharper disable UnusedType.Global 
 // ReSharper disable StringLiteralTypo 
 // ReSharper disable ClassNeverInstantiated.Global
 
@@ -18,12 +17,12 @@ namespace GalaxyatWar
     public class DeploymentIndicator
     {
         private long counter;
-        internal readonly GameObject playPauseButton;
+        private readonly GameObject playPauseButton;
         private readonly GameObject hitBox;
         private readonly Image image;
         private readonly LocalizableText text;
 
-        public DeploymentIndicator()
+        private DeploymentIndicator()
         {
             var root = UIManager.Instance.gameObject;
             var cmdCenterButton = root.gameObject.FindFirstChildNamed("uixPrfBttn_SIM_navButton-prime");
@@ -42,23 +41,33 @@ namespace GalaxyatWar
             if (Time.time > counter + 1)
             {
                 counter++;
-                // SetActive is pretty expensive, so avoid doing it
-                if (isDeploymentRequired && playPauseButton.activeSelf)
+                // IN_SYSTEM seems to miss the transition to the jump when taking a new deployment
+                if (playPauseButton == null ||
+                    Mod.Globals.Sim.TravelState != SimGameTravelStatus.IN_SYSTEM &&
+                    Mod.Globals.Sim.TravelState != SimGameTravelStatus.WARMING_ENGINES)
                 {
-                    image.color = new Color(200, 0, 0);
-                    text.text = "Deployment Required";
-                    playPauseButton.SetActive(false);
-                    hitBox.SetActive(false);
+                    return;
                 }
-                else if (!isDeploymentRequired && !playPauseButton.activeSelf)
-                {
-                    image.color = new Color(0, 0, 0, 0.863f);
-                    playPauseButton.SetActive(true);
-                    hitBox.SetActive(true);
-                }
+            }
+
+            // SetActive is pretty expensive, so avoid doing it
+            if (isDeploymentRequired && playPauseButton.activeSelf)
+            {
+                image.color = new Color(200, 0, 0);
+                text.text = "Deployment Required";
+                playPauseButton.SetActive(false);
+                hitBox.SetActive(false);
+            }
+            else if (!isDeploymentRequired && !playPauseButton.activeSelf)
+            {
+                image.color = new Color(0, 0, 0, 0.863f);
+                playPauseButton.SetActive(true);
+                hitBox.SetActive(true);
             }
         }
 
+
+        // found this hook with a stack trace, it seems to be well situated
         [HarmonyPatch(typeof(SimGameState), "SimGameUXCreatorLoaded")]
         public class SimGameStateSimGameUXCreatorLoadedPatch
         {

@@ -263,7 +263,6 @@ namespace GalaxyatWar
         private static void Spawn()
         {
             FileLog.Log("Spawning new instance...");
-            FileLog.Log($"Spawn: {Mod.DeploymentIndicator?.playPauseButton == null}");
             Mod.Globals.WarStatusTracker = new WarStatus();
             PopulateLookupMaps();
             FileLog.Log("New global state created.");
@@ -282,7 +281,6 @@ namespace GalaxyatWar
             Mod.Globals.WarStatusTracker.FirstTickInitialization = true;
             Mod.Globals.WarStatusTracker.StartGameInitialized = false;
             WarTick.Tick(true, true);
-            FileLog.Log($"Spawn: {Mod.DeploymentIndicator?.playPauseButton == null}");
         }
 
         private static void DeserializeWar(string gawTag)
@@ -292,7 +290,6 @@ namespace GalaxyatWar
             //File.WriteAllText("mods/GalaxyAtWar/tag.txt", tag);
             Mod.Globals.WarStatusTracker = JsonConvert.DeserializeObject<WarStatus>(tag);
             FileLog.Log($">>> Deserialization complete (Size after load: {tag.Length / 1024}kb)");
-            FileLog.Log($"DeserializeWar: {Mod.DeploymentIndicator?.playPauseButton == null}");
         }
 
         [HarmonyPatch(typeof(SimGameState), "Dehydrate")]

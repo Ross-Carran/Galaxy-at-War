@@ -188,7 +188,8 @@ namespace GalaxyatWar
 
                         var breadcrumb = HomeContendedSystems[index];
 
-                        if (breadcrumb == Mod.Globals.Sim.CurSystem || Mod.Globals.Sim.CurSystem.OwnerValue.Name == "Locals" && breadcrumb.OwnerValue.Name != "Locals" ||
+                        if (breadcrumb == Mod.Globals.Sim.CurSystem ||
+                            Mod.Globals.Sim.CurSystem.OwnerValue.Name == "Locals" && breadcrumb.OwnerValue.Name != "Locals" ||
                             !Mod.Globals.IncludedFactions.Contains(breadcrumb.OwnerValue.Name))
                         {
                             // todo get rid of double list?
@@ -446,7 +447,7 @@ namespace GalaxyatWar
                 }
             }
         }
-
+        
         [HarmonyPatch(typeof(SGNavigationScreen), "OnTravelCourseAccepted")]
         public static class SGNavigationScreenOnTravelCourseAcceptedPatch
         {
@@ -459,7 +460,7 @@ namespace GalaxyatWar
 
                     if (!ShowAndConfirmAbandonDeployment())
                     {
-                        CalculateRepLoss();
+                        ReduceReputation();
                         ResetDeploymentState();
                         HandleNavigation();
                     }
@@ -1066,38 +1067,31 @@ namespace GalaxyatWar
         {
             private static bool Prefix(SGContractsWidget __instance)
             {
-                try
+                if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
+                    return true;
+
+                var targetSystem = Mod.Globals.Sim.StarSystemDictionary[__instance.SelectedContract.TargetSystem];
+                if (targetSystem != Mod.Globals.Sim.CurSystem &&
+                    !ShowAndConfirmAbandonDeployment())
                 {
-                    if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
-                        return true;
+                    __instance.NegotiateContract(__instance.SelectedContract);
+                    return false;
+                }
 
-
-                    if (__instance.cachedContract.Override.travelSeed != 0 &&
-                        !ShowAndConfirmAbandonDeployment())
+                if (__instance.SelectedContract.Override.contractDisplayStyle == ContractDisplayStyle.BaseCampaignStory)
+                {
+                    const string message = "Commander, this contract will bring us right to the front lines. If we accept it, we will be forced to take missions when our employer needs us, to simultaneously attack in support of their war effort. We will be committed to this deployment until the system is taken or properly defended, and will lose significant reputation if we end up backing out before the job is done. But, oh man, they will certainly reward us well if their operation is ultimately successful! This deployment may require missions to be done without time between them for repairs or to properly rest our pilots. I strongly encourage you to only accept this arrangement if you think we're up to it.";
+                    PauseNotification.Show("Deployment", message, Mod.Globals.Sim.GetCrewPortrait(SimGameCrew.Crew_Darius), string.Empty, true, () =>
                     {
-                        return true;
-                    }
-
-                    if (__instance.SelectedContract.Override.contractDisplayStyle == ContractDisplayStyle.BaseCampaignStory)
-                    {
-                        const string message = "Commander, this contract will bring us right to the front lines. If we accept it, we will be forced to take missions when our employer needs us, to simultaneously attack in support of their war effort. We will be committed to this deployment until the system is taken or properly defended, and will lose significant reputation if we end up backing out before the job is done. But, oh man, they will certainly reward us well if their operation is ultimately successful! This deployment may require missions to be done without time between them for repairs or to properly rest our pilots. I strongly encourage you to only accept this arrangement if you think we're up to it.";
-                        PauseNotification.Show("Deployment", message, Mod.Globals.Sim.GetCrewPortrait(SimGameCrew.Crew_Darius), string.Empty, true, () =>
+                        if (ShowAndConfirmAbandonDeployment())
                         {
-                            if (!ShowAndConfirmAbandonDeployment())
-                            {
-                                __instance.NegotiateContract(__instance.SelectedContract);
-                            }
-                        }, "Do it anyway", null, "Cancel");
-                        return false;
-                    }
+                            __instance.NegotiateContract(__instance.SelectedContract);
+                        }
+                    }, "Confirm Deployment", null, "Abort");
+                    return false;
+                }
 
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    FileLog.Log(e.ToString());
-                    return true;
-                }
+                return true;
             }
         }
 

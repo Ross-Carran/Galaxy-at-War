@@ -368,10 +368,12 @@ namespace GalaxyatWar
 
                 if (Mod.Globals.WarStatusTracker != null && !Mod.Globals.WarStatusTracker.StartGameInitialized)
                 {
+                    Core.NeedsProcessing = true;
                     FileLog.Log($"Refreshing contracts at RefreshStarmap. ({Mod.Globals.Sim.CurSystem.Name})");
                     var cmdCenter = UnityGameInstance.BattleTechGame.Simulation.RoomManager.CmdCenterRoom;
                     sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
                     Mod.Globals.WarStatusTracker.StartGameInitialized = true;
+                    Core.NeedsProcessing = false;
                 }
             }
         }

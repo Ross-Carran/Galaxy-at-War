@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using BattleTech;
 using BattleTech.Framework;
 using BattleTech.UI;
@@ -125,12 +126,12 @@ namespace GalaxyatWar
             {
                 if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
-
+        
                 Mod.Globals.Sim.CurSystem.MissionsCompleted = 0;
                 Mod.Globals.Sim.CurSystem.CurBreadcrumbOverride = 0;
                 Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs = 0;
                 __state = Mod.Globals.Sim.CurSystem.CurMaxContracts;
-
+        
                 foreach (var theFaction in Mod.Globals.IncludedFactions)
                 {
                     var deathListTracker = DeathListTracker.All[theFaction];
@@ -141,39 +142,39 @@ namespace GalaxyatWar
                     //    deathListTracker = _;
                     //    FileLog.Log($"Created new DeathListTracker for {theFaction}");
                     //}
-
+        
                     AdjustDeathList(deathListTracker, true);
                 }
-
+        
                 if (Mod.Settings.LimitSystemContracts.ContainsKey(Mod.Globals.Sim.CurSystem.Name))
                 {
                     Mod.Globals.Sim.CurSystem.CurMaxContracts = Mod.Settings.LimitSystemContracts[Mod.Globals.Sim.CurSystem.Name];
                 }
-
+        
                 if (Mod.Globals.WarStatusTracker.Deployment)
                 {
                     Mod.Globals.Sim.CurSystem.CurMaxContracts = Mod.Settings.DeploymentContracts;
                 }
             }
-
+        
             private static void Postfix(ref float __state)
             {
                 if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
-
+        
                 // no point running it before influence has been setup
                 if (Mod.Globals.WarStatusTracker.systems.Count > 0 && !Mod.Globals.WarStatusTracker.StartGameInitialized)
                 {
                     ProcessHotSpots();
                 }
-
+        
                 isBreadcrumb = true;
                 Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Clear();
                 Mod.Globals.Sim.CurSystem.MissionsCompleted = 20;
                 Mod.Globals.Sim.CurSystem.CurBreadcrumbOverride = 1;
                 Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs = 1;
                 Mod.Globals.WarStatusTracker.DeploymentContracts.Clear();
-
+        
                 // there is at least one system under contention, it's not a defensive system and there's no current deployment
                 if (HomeContendedSystems.Count != 0 &&
                     !Mod.Settings.DefensiveFactions.Contains(Mod.Globals.Sim.CurSystem.OwnerValue.Name) &&
@@ -193,9 +194,9 @@ namespace GalaxyatWar
                             index = Mod.Globals.Rng.Next(0, 3 * HomeContendedSystems.Count / 4);
                         else if (twiddle == -1)
                             index = Mod.Globals.Rng.Next(HomeContendedSystems.Count / 4, 3 * HomeContendedSystems.Count / 4);
-
+        
                         var breadcrumb = HomeContendedSystems[index];
-
+        
                         if (breadcrumb == Mod.Globals.Sim.CurSystem ||
                             Mod.Globals.Sim.CurSystem.OwnerValue.Name == "Locals" && breadcrumb.OwnerValue.Name != "Locals" ||
                             !Mod.Globals.IncludedFactions.Contains(breadcrumb.OwnerValue.Name))
@@ -205,7 +206,7 @@ namespace GalaxyatWar
                             Mod.Globals.WarStatusTracker.HomeContendedStrings.Remove(breadcrumb.Name);
                             continue;
                         }
-
+        
                         // todo get rid of temporary flip workaround?
                         TemporaryFlip(breadcrumb, Mod.Globals.Sim.CurSystem.OwnerValue.Name);
                         if (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == 0 &&
@@ -226,24 +227,24 @@ namespace GalaxyatWar
                         {
                             Mod.Globals.Sim.GeneratePotentialContracts(false, null, breadcrumb);
                             SystemBonuses(breadcrumb);
-
+        
                             var contract = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Find(x => x.TargetSystem == breadcrumb.ID);
                             contract.Override.contractDisplayStyle = ContractDisplayStyle.BaseCampaignStory;
                             Mod.Globals.WarStatusTracker.DeploymentContracts.Add(contract.Override.contractName);
                         }
-
+        
                         var systemStatus = SystemStatus.All[breadcrumb.Name];
                         RefreshContractsEmployersAndTargets(systemStatus);
                         HomeContendedSystems.Remove(breadcrumb);
                         Mod.Globals.WarStatusTracker.HomeContendedStrings.Add(breadcrumb.Name);
                         if (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == Mod.Settings.InternalHotSpots)
                             break;
-
+        
                         i = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count;
                         twiddle *= -1;
                     }
                 }
-
+        
                 if (ExternalPriorityTargets.Count != 0)
                 {
                     var systemBreadcrumbsCount = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count;
@@ -255,7 +256,7 @@ namespace GalaxyatWar
                         {
                             continue;
                         }
-
+        
                         do     // todo switch loop type
                         {
                             var index = Mod.Globals.Rng.Next(0, ExternalPriorityTargets[target].Count);
@@ -267,7 +268,7 @@ namespace GalaxyatWar
                                 ExternalPriorityTargets[target].Remove(Mod.Globals.Sim.CurSystem);
                                 continue;
                             }
-
+        
                             TemporaryFlip(targetSystem, target);
                             if (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == 0)
                                 Mod.Globals.Sim.GeneratePotentialContracts(true, null, targetSystem);
@@ -278,18 +279,18 @@ namespace GalaxyatWar
                             RefreshContractsEmployersAndTargets(systemStatus);
                             ExternalPriorityTargets[target].RemoveAt(index);
                         } while (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == j && ExternalPriorityTargets[target].Count != 0);
-
+        
                         j = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count;
                         if (j - systemBreadcrumbsCount == Mod.Settings.ExternalHotSpots)
                             break;
                     }
                 }
 
+                FileLog.Log(Mod.Globals.Sim.CurSystem.contractRetrievalCallback.GetMethodInfo().FullDescription());
                 isBreadcrumb = false;
                 Mod.Globals.Sim.CurSystem.CurMaxContracts = __state;
             }
         }
-
 
         [HarmonyPatch(typeof(StarSystem), "InitialContractsFetched", MethodType.Getter)]
         public static class StarSystemInitialContractsFetchedPatch

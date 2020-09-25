@@ -18,7 +18,9 @@ namespace GalaxyatWar
                           (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
             if (hotkeyD)
             {
-                File.WriteAllText("mods/GalaxyAtWar/tag.txt", Mod.Globals.Sim.CompanyTags.First(x => x.StartsWith("GalaxyAtWar")));
+                var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
+                Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+                //File.WriteAllText("mods/GalaxyAtWar/tag.txt", Mod.Globals.Sim.CompanyTags.First(x => x.StartsWith("GalaxyAtWar")));
             }
 
             var hotkeyG = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && Input.GetKeyDown(KeyCode.G) &&

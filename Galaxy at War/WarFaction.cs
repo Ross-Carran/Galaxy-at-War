@@ -67,7 +67,6 @@ namespace GalaxyatWar
 
         public WarFaction(string faction)
         {
-            FileLog.Log("WarFaction ctor: " + faction);
             this.faction = faction;
             GainedSystem = false;
             LostSystem = false;

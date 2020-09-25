@@ -452,7 +452,6 @@ namespace GalaxyatWar
                         FileLog.Log("is Flashpoint, skipping.");
                         return;
                     }
-
                     var targetSystem = contract.TargetSystem;
                     var systemName = Globals.Sim.StarSystems.Find(x => x.ID == targetSystem);
                     __state = contract.Override.shortDescription;
@@ -636,5 +635,7 @@ namespace GalaxyatWar
 
 
         //}
+        
+      
     }
 }

@@ -9,6 +9,7 @@ using Harmony;
 using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Experimental.PlayerLoop;
 using static GalaxyatWar.Helpers;
 
 // ReSharper disable UnusedType.Global
@@ -269,15 +270,17 @@ namespace GalaxyatWar
             // TODO is this value unchanging?  this is wrong if not
             Mod.Globals.WarStatusTracker.systemsByResources =
                 Mod.Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
+            SystemDifficulty();
+
             if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
             {
+                //UpdateInfluenceAndContendedSystems(false);
                 FileLog.Log($"Refreshing contracts at spawn ({Mod.Globals.Sim.CurSystem.Name}).");
                 var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
                 Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
                 Mod.Globals.WarStatusTracker.StartGameInitialized = true;
             }
 
-            SystemDifficulty();
             Mod.Globals.WarStatusTracker.FirstTickInitialization = true;
             Mod.Globals.WarStatusTracker.StartGameInitialized = false;
             WarTick.Tick(true, true);

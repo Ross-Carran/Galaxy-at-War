@@ -66,9 +66,13 @@ namespace GalaxyatWar
                         systemStatus.BonusXP = false;
                     }
 
-                    if (systemStatus.Contended && systemStatus.DifficultyRating <= factRepDict[systemStatus.owner]
-                                               && systemStatus.DifficultyRating >= factRepDict[systemStatus.owner] - 4)
+                    if (systemStatus.Contended &&
+                        systemStatus.DifficultyRating <= factRepDict[systemStatus.owner] &&
+                        systemStatus.DifficultyRating >= factRepDict[systemStatus.owner] - 4)
+                    {
                         systemStatus.PriorityDefense = true;
+                    }
+
                     if (systemStatus.PriorityDefense)
                     {
                         if (systemStatus.owner == dominantFaction)
@@ -83,7 +87,7 @@ namespace GalaxyatWar
                         {
                             if (attacker == dominantFaction)
                             {
-                                if (!FullHomeContendedSystems.Keys.Contains(systemStatus.starSystem))
+                                if (!FullHomeContendedSystems.ContainsKey(systemStatus.starSystem))
                                     FullHomeContendedSystems.Add(systemStatus.starSystem, systemStatus.TotalResources);
                             }
                             else
@@ -95,17 +99,8 @@ namespace GalaxyatWar
                     }
                 }
 
-                var i = 0;
-                foreach (var system in FullHomeContendedSystems.OrderByDescending(x => x.Value))
-                {
-                    if (i < FullHomeContendedSystems.Count)
-                    {
-                        Mod.Globals.WarStatusTracker.HomeContendedStrings.Add(system.Key.Name);
-                    }
-
-                    HomeContendedSystems.Add(system.Key);
-                    i++;
-                }
+                Mod.Globals.WarStatusTracker.HomeContendedStrings = FullHomeContendedSystems.OrderByDescending(x =>
+                    x.Value).Select(x => x.Key.Name).ToList();
             }
             catch (Exception ex)
             {
@@ -156,8 +151,11 @@ namespace GalaxyatWar
                 if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
-                if (Mod.Globals.WarStatusTracker.systems.Count > 0)
+                // no point running it before influence has been setup
+                if (Mod.Globals.WarStatusTracker.systems.Count > 0 && !Mod.Globals.WarStatusTracker.StartGameInitialized)
+                {
                     ProcessHotSpots();
+                }
 
                 isBreadcrumb = true;
                 Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Clear();
@@ -328,6 +326,7 @@ namespace GalaxyatWar
             var FactionDef = UnityGameInstance.BattleTechGame.Simulation.GetFactionDef(faction);
             starSystem.Def.contractEmployerIDs.Clear();
             starSystem.Def.contractTargetIDs.Clear();
+
             var systemStatus = SystemStatus.All[starSystem.Name];
             if (Mod.Settings.NoOffensiveContracts.Contains(faction))
             {
@@ -363,12 +362,9 @@ namespace GalaxyatWar
                 return;
             }
 
-
             starSystem.Def.contractEmployerIDs.Add(faction);
             if (Mod.Settings.GaW_PoliceSupport && faction == Mod.Globals.WarStatusTracker.ComstarAlly)
                 starSystem.Def.contractEmployerIDs.Add(Mod.Settings.GaW_Police);
-
-
             foreach (var influence in systemStatus.influenceTracker.OrderByDescending(x => x.Value))
             {
                 if (Mod.Globals.WarStatusTracker.PirateDeployment)
@@ -400,10 +396,8 @@ namespace GalaxyatWar
 
             if (starSystem.Def.contractTargetIDs.Contains(Mod.Globals.WarStatusTracker.ComstarAlly))
                 starSystem.Def.contractTargetIDs.Add(Mod.Globals.WarStatusTracker.ComstarAlly);
-
             if (starSystem.Def.contractTargetIDs.Count == 0)
                 starSystem.Def.contractTargetIDs.Add("AuriganPirates");
-
             if (!starSystem.Def.contractTargetIDs.Contains("Locals"))
                 starSystem.Def.contractTargetIDs.Add("Locals");
         }
@@ -447,7 +441,7 @@ namespace GalaxyatWar
                 }
             }
         }
-        
+
         [HarmonyPatch(typeof(SGNavigationScreen), "OnTravelCourseAccepted")]
         public static class SGNavigationScreenOnTravelCourseAcceptedPatch
         {
@@ -462,7 +456,7 @@ namespace GalaxyatWar
                     {
                         ReduceReputation();
                         ResetDeploymentState();
-                        HandleNavigation();
+                        NavigateToSystem();
                     }
                 }
                 catch (Exception e)
@@ -470,7 +464,6 @@ namespace GalaxyatWar
                     FileLog.Log(e.ToString());
                 }
             }
-
 
             private static void Postfix()
             {
@@ -906,12 +899,13 @@ namespace GalaxyatWar
         public static void SystemBonuses(StarSystem starSystem)
         {
             var systemStatus = SystemStatus.All[starSystem.Name];
+
             int systemDifficulty;
             if (Mod.Settings.ChangeDifficulty)
                 systemDifficulty = systemStatus.DifficultyRating;
             else
-                systemDifficulty = systemStatus.DifficultyRating + (int) Mod.Globals.Sim.GlobalDifficulty;
 
+                systemDifficulty = systemStatus.DifficultyRating + (int) Mod.Globals.Sim.GlobalDifficulty;
             if (!Mod.Globals.WarStatusTracker.HotBox.Contains(starSystem.Name))
             {
                 systemStatus.BonusCBills = false;
@@ -963,6 +957,7 @@ namespace GalaxyatWar
             Mod.Globals.WarStatusTracker.DeploymentInfluenceIncrease = 1.0;
             Mod.Globals.WarStatusTracker.HotBox.Remove(systemStatus.name);
             RefreshContractsEmployersAndTargets(systemStatus);
+
             var hasFlashpoint = false;
             foreach (var contract in Mod.Globals.Sim.CurSystem.SystemContracts)
             {
@@ -995,8 +990,8 @@ namespace GalaxyatWar
         {
             var simStory = Mod.Globals.Sim.Constants.Story;
             var simCareer = Mod.Globals.Sim.Constants.CareerMode;
-            int maxContracts;
 
+            int maxContracts;
             if (FactionRep <= simStory.LoathedReputation)
                 maxContracts = Convert.ToInt32(simCareer.LoathedMaxContractDifficulty);
             else if (FactionRep <= simStory.HatedReputation)
@@ -1011,12 +1006,10 @@ namespace GalaxyatWar
                 maxContracts = Convert.ToInt32(simCareer.FriendlyMaxContractDifficulty);
             else
                 maxContracts = Convert.ToInt32(simCareer.HonoredMaxContractDifficulty);
-
             if (maxContracts > 10)
                 maxContracts = 10;
             if (maxContracts < 1)
                 maxContracts = 1;
-
             return maxContracts;
         }
 

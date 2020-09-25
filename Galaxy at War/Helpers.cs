@@ -6,6 +6,7 @@ using BattleTech;
 using BattleTech.Framework;
 using BattleTech.UI;
 using Harmony;
+using UIWidgets;
 using UnityEngine;
 
 // ReSharper disable StringLiteralTypo
@@ -39,7 +40,11 @@ namespace GalaxyatWar
                     if (systemStatus.OriginalOwner == null)
                         systemStatus.OriginalOwner = systemStatus.owner;
 
-                    if (Mod.Settings.ChangeDifficulty && !systemStatus.starSystem.Tags.Contains("planet_start_world"))
+                    if (!Mod.Settings.ChangeDifficulty)
+                    {
+                        systemStatus.DifficultyRating = systemStatus.starSystem.Def.DefaultDifficulty;
+                    }
+                    else if (!systemStatus.starSystem.Tags.Contains("planet_start_world"))
                     {
                         Mod.Globals.Sim.Constants.Story.ContractDifficultyMod = 0;
                         Mod.Globals.Sim.CompanyStats.Set<float>("Difficulty", 0);
@@ -100,24 +105,18 @@ namespace GalaxyatWar
                         systemStatus.starSystem.Def.DifficultyList = difficultyList;
                         systemStatus.starSystem.Def.DefaultDifficulty = amount;
                     }
-                    else
-                    {
-                        systemStatus.DifficultyRating = systemStatus.starSystem.Def.DefaultDifficulty;
-                        i++;
-                    }
 
                     if (systemStatus.starSystem.Def.OwnerValue.Name != "NoFaction" && systemStatus.starSystem.Def.SystemShopItems.Count == 0)
                     {
-                        var tempList = new List<string>
+                        systemStatus.starSystem.Def.SystemShopItems = new List<string>
                         {
                             "itemCollection_minor_Locals"
                         };
-                        systemStatus.starSystem.Def.SystemShopItems = tempList;
-                        if (Mod.Globals.Sim.CurSystem.Name == systemStatus.starSystem.Def.Description.Name)
+                        if (Mod.Globals.Sim.CurSystem == systemStatus.starSystem)
                         {
                             var refreshShop = Shop.RefreshType.RefreshIfEmpty;
-                            systemStatus.starSystem.SystemShop.Rehydrate(Mod.Globals.Sim, systemStatus.starSystem, systemStatus.starSystem.Def.SystemShopItems, refreshShop,
-                                Shop.ShopType.System);
+                            systemStatus.starSystem.SystemShop.Rehydrate(
+                                Mod.Globals.Sim, systemStatus.starSystem, systemStatus.starSystem.Def.SystemShopItems, refreshShop, Shop.ShopType.System);
                         }
                     }
                 }
@@ -540,9 +539,9 @@ namespace GalaxyatWar
             }
         }
 
-        internal static void UpdateInfluenceFromAttacks(bool checkForSystemChange)
+        internal static void UpdateInfluenceAndContendedSystems(bool clearLostSystems)
         {
-            if (checkForSystemChange)
+            if (clearLostSystems)
                 Mod.Globals.WarStatusTracker.LostSystems.Clear();
 
             //FileLog.Log($"Updating influence for {Mod.Globals.WarStatusTracker.SystemStatuses.Count.ToString()} systems");
@@ -551,20 +550,19 @@ namespace GalaxyatWar
                 // todo move instantiation out of loop?
                 var tempDict = new Dictionary<string, float>();
                 tempDict.Clear();
-                var totalInfluence = systemStatus.influenceTracker.Values.Sum();
+                var totalInfluence = systemStatus.influenceTracker.Values.Sum(); // doing this at set might be "faster"
                 var highest = 0f;
                 var highestFaction = systemStatus.owner;
-                foreach (var kvp in systemStatus.influenceTracker)
+                foreach (var factionInfluence in new Dictionary<string, float>(systemStatus.influenceTracker.AsEnumerable()))
                 {
-                    tempDict.Add(kvp.Key, kvp.Value / totalInfluence * 100);
-                    if (kvp.Value > highest)
+                    systemStatus.influenceTracker[factionInfluence.Key] = factionInfluence.Value / totalInfluence * 100;
+                    if (factionInfluence.Value > highest)
                     {
-                        highest = kvp.Value;
-                        highestFaction = kvp.Key;
+                        highest = factionInfluence.Value;
+                        highestFaction = factionInfluence.Key;
                     }
                 }
 
-                systemStatus.influenceTracker = tempDict;
                 var diffStatus = systemStatus.influenceTracker[highestFaction] - systemStatus.influenceTracker[systemStatus.owner];
                 var starSystem = systemStatus.starSystem;
 
@@ -580,7 +578,7 @@ namespace GalaxyatWar
                         systemStatus.Contended = true;
                         ChangeDeathListFromAggression(starSystem, highestFaction, starSystem.OwnerValue.Name);
                     }
-                    else if (checkForSystemChange)
+                    else if (clearLostSystems)
                     {
                         ChangeSystemOwnership(starSystem, highestFaction, false);
                         systemStatus.Contended = false;
@@ -815,11 +813,10 @@ namespace GalaxyatWar
 
         internal static int CalculateFlipMissions(string attacker, StarSystem system)
         {
-            var warSystem = SystemStatus.All[system.Name];
-            var tempIt = new Dictionary<string, float>(warSystem.influenceTracker);
+            var systemStatus = SystemStatus.All[system.Name];
+            var tempIt = new Dictionary<string, float>(systemStatus.influenceTracker);
             var missionCounter = 0;
             var influenceDifference = 0.0f;
-            double contractDifficulty = warSystem.DifficultyRating;
             var deploymentIfHolder = Mod.Globals.WarStatusTracker.DeploymentInfluenceIncrease;
             Mod.Globals.WarStatusTracker.DeploymentInfluenceIncrease = 1;
             while (influenceDifference <= Mod.Settings.TakeoverThreshold)
@@ -834,7 +831,7 @@ namespace GalaxyatWar
                     }
                 }
 
-                var influenceChange = DeltaInfluence(system, contractDifficulty, "CaptureBase", defenseFaction, false);
+                var influenceChange = DeltaInfluence(system, systemStatus.DifficultyRating, "CaptureBase", defenseFaction, false);
                 tempIt[attacker] += (float) influenceChange;
                 tempIt[defenseFaction] -= (float) influenceChange;
                 influenceDifference = tempIt[attacker] - tempIt[defenseFaction];
@@ -1187,7 +1184,7 @@ namespace GalaxyatWar
             ReduceReputation();
         }
 
-        internal static void HandleNavigation()
+        internal static void NavigateToSystem()
         {
             Mod.Globals.Sim.Starmap.SetActivePath();
             Mod.Globals.Sim.SetSimRoomState(DropshipLocation.SHIP);
@@ -1227,7 +1224,6 @@ namespace GalaxyatWar
             }
         }
 
-        // BUG this isn't working at all
         internal static void ReduceReputation()
         {
             if (Mod.Globals.Sim.GetFactionDef(Mod.Globals.WarStatusTracker.DeploymentEmployer).FactionValue.DoesGainReputation)
@@ -1242,8 +1238,9 @@ namespace GalaxyatWar
 
                 if (num != 0)
                 {
+                    GenericPopupBuilder.Create(GenericPopupType.Warning, $"{-num} reputation lost with MRB and {Mod.Globals.WarStatusTracker.DeploymentEmployer}.").Render();
                     Mod.Globals.Sim.SetReputation(Mod.Globals.Sim.GetFactionDef(Mod.Globals.WarStatusTracker.DeploymentEmployer).FactionValue, num);
-                    Mod.Globals.Sim.SetReputation(Mod.Globals.Sim.GetFactionValueFromString("faction_MercenaryReviewBoard"), num);
+                    Mod.Globals.Sim.SetReputation(FactionEnumeration.GetFactionByID(12), num);
                 }
             }
         }

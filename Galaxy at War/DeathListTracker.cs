@@ -36,7 +36,6 @@ namespace GalaxyatWar
 
         public DeathListTracker(string faction)
         {
-            FileLog.Log("DeathListTracker ctor: " + faction);
             this.faction = faction;
             var factionDef = Mod.Globals.Sim.GetFactionDef(faction);
             All.Add(faction, this);

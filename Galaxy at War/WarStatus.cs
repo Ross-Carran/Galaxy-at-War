@@ -58,7 +58,6 @@ namespace GalaxyatWar
 
         public WarStatus()
         {
-            FileLog.Log("WarStatus ctor");
             if (Mod.Settings.ISMCompatibility)
                 Mod.Settings.IncludedFactions = new List<string>(Mod.Settings.IncludedFactions_ISM);
 
@@ -86,6 +85,7 @@ namespace GalaxyatWar
                 deathListTracker.Add(d);
             }
 
+            FileLog.Log("WarFactions and DeathListTrackers created.");
             foreach (var system in Mod.Globals.Sim.StarSystems)
             {
                 if (system.OwnerValue.Name == "NoFaction" || system.OwnerValue.Name == "AuriganPirates")

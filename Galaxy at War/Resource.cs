@@ -11,7 +11,7 @@ namespace GalaxyatWar
 {
     public class Resource
     {
-        public static void DivideAttackResources(WarFaction warFaction, bool useFullSet)
+        public static void DivideAttackResources(WarFaction warFaction)
         {
             //Log("Attacking");
             var deathListTracker = warFaction.DeathListTracker;
@@ -20,7 +20,14 @@ namespace GalaxyatWar
             var tempTargets = new Dictionary<string, float>();
             foreach (var fact in warFaction.attackTargets.Keys)
             {
-                tempTargets.Add(fact, deathListTracker.deathList[fact]);
+                try
+                {
+                    tempTargets.Add(fact, deathListTracker.deathList[fact]);
+                }
+                catch (Exception ex)
+                {
+                    FileLog.Log(ex.ToString());
+                }
             }
 
             var total = tempTargets.Values.Sum();

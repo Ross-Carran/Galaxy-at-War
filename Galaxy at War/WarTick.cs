@@ -164,7 +164,7 @@ namespace GalaxyatWar
             FileLog.Log("Processing resource spending.");
             foreach (var warFaction in Mod.Globals.WarStatusTracker.warFactionTracker)
             {
-                DivideAttackResources(warFaction, useFullSet);
+                DivideAttackResources(warFaction);
             }
 
             CalculateDefensiveSystems();
@@ -175,7 +175,7 @@ namespace GalaxyatWar
             }
 
             FileLog.Log("Processing influence changes.");
-            UpdateInfluenceFromAttacks(checkForSystemChange);
+            UpdateInfluenceAndContendedSystems(checkForSystemChange);
 
             //Increase War Escalation or decay defenses.
             foreach (var warFaction in Mod.Globals.WarStatusTracker.warFactionTracker)

@@ -215,22 +215,6 @@ namespace GalaxyatWar
                     }
                 }
             }
-
-            // doubtful this is needed...
-            var _ = new Dictionary<string, float>();
-            foreach (var kvp in Mod.Globals.WarStatusTracker.FullHomeContendedSystems)
-            {
-                if (!Mod.Settings.ImmuneToWar.Contains(kvp.Key))
-                {
-                    _.Add(kvp.Key, kvp.Value);
-                }
-                else
-                {
-                    FileLog.Log($"Removing {kvp.Key} from FullHomeContendedSystems, as they are immune to war.");
-                }
-            }
-
-            Mod.Globals.WarStatusTracker.FullHomeContendedSystems = _;
         }
 
         // if the war is missing systems, add them
@@ -300,23 +284,23 @@ namespace GalaxyatWar
         {
             public static void Prefix(SimGameState __instance)
             {
-                FileLog.Log("Dehydrate");
+                FileLog.Log("SimGameStateDehydratePatch");
                 Mod.Globals.Sim = __instance;
                 if (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
-                if (Mod.Globals.WarStatusTracker == null)
-                {
-                    Mod.Globals.WarStatusTracker = new WarStatus();
-                    SystemDifficulty();
-                    WarTick.Tick(true, true);
-                    SerializeWar();
-                }
-                else
-                {
-                    ConvertToSave();
-                    SerializeWar();
-                }
+                //if (Mod.Globals.WarStatusTracker == null)
+                //{
+                //    Mod.Globals.WarStatusTracker = new WarStatus();
+                //    SystemDifficulty();
+                //    WarTick.Tick(true, true);
+                //    SerializeWar();
+                //}
+                //else
+                //{
+                ConvertToSave();
+                SerializeWar();
+                //}
             }
 
             public static void Postfix()
@@ -353,7 +337,6 @@ namespace GalaxyatWar
 
             SystemDifficulty();
             try
-
             {
                 if (Mod.Settings.ResetMap)
                 {
@@ -479,7 +462,7 @@ namespace GalaxyatWar
                 foreach (var system in HotSpots.ExternalPriorityTargets[faction])
                     Mod.Globals.WarStatusTracker.ExternalPriorityTargets[faction].Add(system.Def.CoreSystemID);
             }
-
+            
             foreach (var system in HotSpots.FullHomeContendedSystems)
                 Mod.Globals.WarStatusTracker.FullHomeContendedSystems.Add(system.Key.Def.CoreSystemID, system.Value);
             foreach (var system in HotSpots.HomeContendedSystems)

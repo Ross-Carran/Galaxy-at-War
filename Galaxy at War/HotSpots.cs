@@ -11,7 +11,6 @@ using static GalaxyatWar.Helpers;
 using Random = System.Random;
 
 // ReSharper disable UnusedMember.Global
-
 // ReSharper disable ClassNeverInstantiated.Global
 // ReSharper disable InconsistentNaming
 // ReSharper disable UnusedMember.Local
@@ -32,6 +31,7 @@ namespace GalaxyatWar
         {
             try
             {
+                FileLog.Log("Processing HotSpots...");
                 if (!SystemStatus.All.TryGetValue(Mod.Globals.Sim.CurSystem.Name, out var curSystem))
                 {
                     FileLog.Log($"SystemStatus.All.TryGetValue({Mod.Globals.Sim.CurSystem.Name}) failed.");
@@ -99,8 +99,18 @@ namespace GalaxyatWar
                     }
                 }
 
-                Mod.Globals.WarStatusTracker.HomeContendedStrings = FullHomeContendedSystems.OrderByDescending(x =>
-                    x.Value).Select(x => x.Key.Name).ToList();
+                // todo review and refactor
+                var i = 0;
+                foreach (var system in FullHomeContendedSystems.OrderByDescending(x => x.Value))
+                {
+                    if (i < FullHomeContendedSystems.Count)
+                    {
+                        Mod.Globals.WarStatusTracker.HomeContendedStrings.Add(system.Key.Name);
+                    }
+
+                    HomeContendedSystems.Add(system.Key);
+                    i++;
+                }
             }
             catch (Exception ex)
             {
@@ -241,29 +251,30 @@ namespace GalaxyatWar
                     foreach (var target in ExternalPriorityTargets.Keys)
                     {
                         if (ExternalPriorityTargets[target].Count == 0 || Mod.Settings.DefensiveFactions.Contains(target) ||
-                            !Mod.Globals.IncludedFactions.Contains(target))
+                            !Mod.Globals.IncludedFactions.Contains(target))     // todo drop this 3rd clause
                         {
                             continue;
                         }
 
-                        do
+                        do     // todo switch loop type
                         {
                             var index = Mod.Globals.Rng.Next(0, ExternalPriorityTargets[target].Count);
+                            var targetSystem = ExternalPriorityTargets[target].GetRandomElement();
                             Mod.Globals.Sim.CurSystem.CurBreadcrumbOverride = j + 1;
                             Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs = j + 1;
-                            if (ExternalPriorityTargets[target][index] == Mod.Globals.Sim.CurSystem)
+                            if (targetSystem == Mod.Globals.Sim.CurSystem)
                             {
                                 ExternalPriorityTargets[target].Remove(Mod.Globals.Sim.CurSystem);
                                 continue;
                             }
 
-                            TemporaryFlip(ExternalPriorityTargets[target][index], target);
+                            TemporaryFlip(targetSystem, target);
                             if (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == 0)
-                                Mod.Globals.Sim.GeneratePotentialContracts(true, null, ExternalPriorityTargets[target][index]);
+                                Mod.Globals.Sim.GeneratePotentialContracts(true, null, targetSystem);
                             else
-                                Mod.Globals.Sim.GeneratePotentialContracts(false, null, ExternalPriorityTargets[target][index]);
-                            SystemBonuses(ExternalPriorityTargets[target][index]);
-                            var systemStatus = SystemStatus.All[ExternalPriorityTargets[target][index].Name];
+                                Mod.Globals.Sim.GeneratePotentialContracts(false, null, targetSystem);
+                            SystemBonuses(targetSystem);
+                            var systemStatus = SystemStatus.All[targetSystem.Name];
                             RefreshContractsEmployersAndTargets(systemStatus);
                             ExternalPriorityTargets[target].RemoveAt(index);
                         } while (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == j && ExternalPriorityTargets[target].Count != 0);

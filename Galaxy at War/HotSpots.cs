@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -163,7 +163,7 @@ namespace GalaxyatWar
                     return;
         
                 // no point running it before influence has been setup
-                if (Mod.Globals.WarStatusTracker.systems.Count > 0 && !Mod.Globals.WarStatusTracker.StartGameInitialized)
+                if (Mod.Globals.NeedsProcessing)
                 {
                     ProcessHotSpots();
                 }
@@ -659,9 +659,11 @@ namespace GalaxyatWar
                     !Mod.Globals.WarStatusTracker.HotBox.Contains(Mod.Globals.Sim.CurSystem.Name) &&
                     !HasFlashpoint && !Mod.Globals.HoldContracts)
                 {
+                    Mod.Globals.NeedsProcessing = true;
                     FileLog.Log("Regenerating contracts because entering system.");
                     var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
                     Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+                    Mod.Globals.NeedsProcessing = false;
                 }
 
                 Mod.Globals.HoldContracts = false;
@@ -979,9 +981,11 @@ namespace GalaxyatWar
 
             if (!hasFlashpoint)
             {
+                Mod.Globals.NeedsProcessing = true;
                 FileLog.Log("Refresh contracts because CompleteEscalation.");
                 var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
                 Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => Traverse.Create(cmdCenter).Method("OnContractsFetched"));
+                Mod.Globals.NeedsProcessing = false;
             }
         }
 

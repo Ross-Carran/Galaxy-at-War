@@ -71,7 +71,9 @@ namespace GalaxyatWar
                 while (targetFar > 0 && attackTargets.Count > 0)
                 {
                     // DE-CONSTRUCTOR!
-                    var (target, system) = map.GetRandomElement();
+                    var attackTarget = map.GetRandomElement();
+                    var target = attackTarget.Key;
+                    var system = attackTarget.Value;
 
                     if (system == null)
                     {

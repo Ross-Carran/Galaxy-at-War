@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -553,7 +554,8 @@ namespace GalaxyatWar
                 var totalInfluence = systemStatus.influenceTracker.Values.Sum(); // doing this at set might be "faster"
                 var highest = 0f;
                 var highestFaction = systemStatus.owner;
-                foreach (var factionInfluence in new Dictionary<string, float>(systemStatus.influenceTracker.AsEnumerable()))
+                var _ = (IDictionary<string, float>) systemStatus.influenceTracker;
+                foreach (var factionInfluence in new Dictionary<string, float>(_))
                 {
                     systemStatus.influenceTracker[factionInfluence.Key] = factionInfluence.Value / totalInfluence * 100;
                     if (factionInfluence.Value > highest)
@@ -1182,6 +1184,14 @@ namespace GalaxyatWar
         {
             ResetDeploymentState();
             ReduceReputation();
+            ReRollContracts();
+        }
+
+        private static void ReRollContracts()
+        {
+            FileLog.Log($"Refreshing contracts at ReRollContracts ({Mod.Globals.Sim.CurSystem.Name}).");
+            var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
+            Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
         }
 
         internal static void NavigateToSystem()

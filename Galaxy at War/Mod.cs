@@ -387,9 +387,11 @@ namespace GalaxyatWar
 
                             if (!HasFlashpoint)
                             {
+                                Globals.NeedsProcessing = true;
                                 FileLog.Log("Refresh contracts after system flip.");
                                 var cmdCenter = UnityGameInstance.BattleTechGame.Simulation.RoomManager.CmdCenterRoom;
                                 Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+                                Globals.NeedsProcessing = false;
                             }
 
                             Globals.Sim.StopPlayMode();

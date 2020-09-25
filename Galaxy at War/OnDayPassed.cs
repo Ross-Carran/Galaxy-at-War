@@ -75,10 +75,12 @@ namespace GalaxyatWar
 
                 if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
                 {
+                    Mod.Globals.NeedsProcessing = true;
                     FileLog.Log("Reinitializing contracts because !StartGameInitialized");
                     var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
                     Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
                     Mod.Globals.WarStatusTracker.StartGameInitialized = true;
+                    Mod.Globals.NeedsProcessing = false;
                 }
             }
 
@@ -135,9 +137,11 @@ namespace GalaxyatWar
                         var hasFlashPoint = Mod.Globals.Sim.CurSystem.SystemContracts.Any(x => x.IsFlashpointContract || x.IsFlashpointCampaignContract);
                         if (!Mod.Globals.WarStatusTracker.HotBoxTravelling && !Mod.Globals.WarStatusTracker.HotBox.Contains(Mod.Globals.Sim.CurSystem.Name) && !hasFlashPoint)
                         {
+                            Mod.Globals.NeedsProcessing = true;
                             FileLog.Log("Regenerating contracts because month-end.");
                             var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
                             Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+                            Mod.Globals.NeedsProcessing = false;
                         }
                     }
 

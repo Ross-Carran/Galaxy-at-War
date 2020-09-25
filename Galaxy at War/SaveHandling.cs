@@ -256,14 +256,16 @@ namespace GalaxyatWar
                 Mod.Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
             SystemDifficulty();
 
-            if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
-            {
-                //UpdateInfluenceAndContendedSystems(false);
-                FileLog.Log($"Refreshing contracts at spawn ({Mod.Globals.Sim.CurSystem.Name}).");
-                var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
-                Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
-                Mod.Globals.WarStatusTracker.StartGameInitialized = true;
-            }
+            //if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
+            //{
+            //    //UpdateInfluenceAndContendedSystems(false);
+            //    Mod.Globals.NeedsProcessing = true;
+            //    FileLog.Log($"Refreshing contracts at spawn ({Mod.Globals.Sim.CurSystem.Name}).");
+            //    var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
+            //    Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+            //    //Mod.Globals.WarStatusTracker.StartGameInitialized = true;
+            //    Mod.Globals.NeedsProcessing = false;
+            //}
 
             Mod.Globals.WarStatusTracker.FirstTickInitialization = true;
             Mod.Globals.WarStatusTracker.StartGameInitialized = false;

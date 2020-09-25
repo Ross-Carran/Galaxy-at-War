@@ -356,27 +356,27 @@ namespace GalaxyatWar
         }
 
         // makes the starmap shows priority contracts when not initialized
-        [HarmonyPatch(typeof(StarmapScreen), "RefreshStarmap")]
-        public static class StarmapScreen_RefreshStarmap__Patch
-        {
-            public static void Prefix()
-            {
-                //FileLog.Log($"RefreshStarmap");
-                var sim = UnityGameInstance.BattleTechGame.Simulation;
-                if (Mod.Globals.WarStatusTracker == null || sim.IsCampaign && !sim.CompanyTags.Contains("story_complete"))
-                    return;
-
-                if (Mod.Globals.WarStatusTracker != null && !Mod.Globals.WarStatusTracker.StartGameInitialized)
-                {
-                    Core.NeedsProcessing = true;
-                    FileLog.Log($"Refreshing contracts at RefreshStarmap. ({Mod.Globals.Sim.CurSystem.Name})");
-                    var cmdCenter = UnityGameInstance.BattleTechGame.Simulation.RoomManager.CmdCenterRoom;
-                    sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
-                    Mod.Globals.WarStatusTracker.StartGameInitialized = true;
-                    Core.NeedsProcessing = false;
-                }
-            }
-        }
+        //[HarmonyPatch(typeof(StarmapScreen), "RefreshStarmap")]
+        //public static class StarmapScreen_RefreshStarmap__Patch
+        //{
+        //    public static void Prefix()
+        //    {
+        //        //FileLog.Log($"RefreshStarmap");
+        //        var sim = UnityGameInstance.BattleTechGame.Simulation;
+        //        if (Mod.Globals.WarStatusTracker == null || sim.IsCampaign && !sim.CompanyTags.Contains("story_complete"))
+        //            return;
+        //
+        //        if (Mod.Globals.WarStatusTracker != null && !Mod.Globals.WarStatusTracker.StartGameInitialized)
+        //        {
+        //            Mod.Globals.NeedsProcessing = true;
+        //            FileLog.Log($"Refreshing contracts at RefreshStarmap. ({Mod.Globals.Sim.CurSystem.Name})");
+        //            var cmdCenter = UnityGameInstance.BattleTechGame.Simulation.RoomManager.CmdCenterRoom;
+        //            sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+        //            Mod.Globals.WarStatusTracker.StartGameInitialized = true;
+        //            Mod.Globals.NeedsProcessing = false;
+        //        }
+        //    }
+        //}
 
         [HarmonyPatch(typeof(StarmapRenderer), "RefreshSystems")]
         public static class StarmapRendererRefreshSystemsPatch

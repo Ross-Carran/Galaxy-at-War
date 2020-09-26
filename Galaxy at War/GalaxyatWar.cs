@@ -25,7 +25,8 @@ namespace GalaxyatWar
                 Mod.Settings = new ModSettings();
             }
 
-            FileLog.Log("GaW Starting up...");
+            var version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            FileLog.Log($"GaW {version} Starting up...");
 
             foreach (var value in Mod.Settings.GetType().GetFields())
             {

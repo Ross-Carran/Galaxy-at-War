@@ -14,6 +14,18 @@ namespace GalaxyatWar
     {
         public static void Postfix()
         {
+            var resetKeys = (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) &&
+                            (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) &&
+                            (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) &&
+                            Input.GetKeyDown(KeyCode.F10);
+            if (resetKeys)
+            {
+                FileLog.Log(new string('*', 50));
+                FileLog.Log("MAP RESET");
+                FileLog.Log(new string('*', 50));
+                SaveHandling.InitializeModState();
+            }
+            
             var hotkeyD = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && Input.GetKeyDown(KeyCode.D) &&
                           (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
             if (hotkeyD)

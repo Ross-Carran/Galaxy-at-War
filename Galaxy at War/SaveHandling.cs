@@ -1,15 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using BattleTech;
 using BattleTech.Framework;
+using BattleTech.Save;
 using BattleTech.Save.SaveGameStructure;
 using Harmony;
 using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Experimental.PlayerLoop;
 using static GalaxyatWar.Helpers;
 
 // ReSharper disable UnusedType.Global
@@ -26,16 +25,24 @@ namespace GalaxyatWar
         [HarmonyPatch(typeof(SaveGameStructure), "Load", typeof(string))]
         public class SimGameStateRehydratePatch
         {
-            private static void Postfix()
+            private static void Postfix() => ResetState();
+        }
+
+        [HarmonyPatch(typeof(LoadTransitioning), "GoToMainMenu", new Type[] { })]
+        public class OverlayMenuQuitPatch
+        {
+            private static void Postfix() => ResetState();
+        }
+
+        private static void ResetState()
+        {
+            // no action unless the mod's already set itself up before
+            if (Mod.Globals.ModInitialized)
             {
-                // no action unless the mod's already set itself up before
-                if (Mod.Globals.ModInitialized)
-                {
-                    Mod.Globals = new Globals();
-                    PopulateFactions();
-                    RePopulateMaps = true;
-                    FileLog.Log("State reset.");
-                }
+                Mod.Globals = new Globals();
+                PopulateFactions();
+                RePopulateMaps = true;
+                FileLog.Log("State reset.");
             }
         }
 
@@ -63,7 +70,7 @@ namespace GalaxyatWar
                 if (Mod.Settings.ResetMap)
                 {
                     FileLog.Log("Resetting map due to settings.");
-                    Spawn();
+                    InitializeModState();
                     return;
                 }
 
@@ -92,7 +99,7 @@ namespace GalaxyatWar
                     {
                         FileLog.Log("Found tag but it's broken and being respawned:");
                         FileLog.Log($"{gawTag.Substring(0, 500)}");
-                        Spawn();
+                        InitializeModState();
                     }
                     else
                     {
@@ -106,16 +113,16 @@ namespace GalaxyatWar
                 }
                 else
                 {
-                    Spawn();
+                    InitializeModState();
                 }
 
+                // necessary to refresh memory maps if a game is loaded
                 if (RePopulateMaps)
                 {
                     PopulateLookupMaps();
                     RePopulateMaps = false;
                 }
 
-                //Mod.DeploymentIndicator = new DeploymentIndicator();
                 FileLog.Log("Initialization complete.");
                 Mod.Globals.ModInitialized = true;
             }
@@ -245,7 +252,7 @@ namespace GalaxyatWar
             }
         }
 
-        private static void Spawn()
+        internal static void InitializeModState()
         {
             FileLog.Log("Spawning new instance...");
             Mod.Globals.WarStatusTracker = new WarStatus();
@@ -256,16 +263,16 @@ namespace GalaxyatWar
                 Mod.Globals.WarStatusTracker.systems.OrderBy(x => x.TotalResources).ToList();
             SystemDifficulty();
 
-            //if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
-            //{
-            //    //UpdateInfluenceAndContendedSystems(false);
-            //    Mod.Globals.NeedsProcessing = true;
-            //    FileLog.Log($"Refreshing contracts at spawn ({Mod.Globals.Sim.CurSystem.Name}).");
-            //    var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
-            //    Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
-            //    //Mod.Globals.WarStatusTracker.StartGameInitialized = true;
-            //    Mod.Globals.NeedsProcessing = false;
-            //}
+            if (!Mod.Globals.WarStatusTracker.StartGameInitialized)
+            {
+                FileLog.Log($"Refreshing contracts at spawn ({Mod.Globals.Sim.CurSystem.Name}).");
+                UpdateInfluenceAndContendedSystems(false);
+                Mod.Globals.NeedsProcessing = true;
+                HotSpots.ReRollCustomContracts();
+                Mod.Globals.NeedsProcessing = false;
+                StarmapScreen.isDirty = true;
+                Mod.Globals.WarStatusTracker.StartGameInitialized = true;
+            }
 
             Mod.Globals.WarStatusTracker.FirstTickInitialization = true;
             Mod.Globals.WarStatusTracker.StartGameInitialized = false;
@@ -464,7 +471,7 @@ namespace GalaxyatWar
                 foreach (var system in HotSpots.ExternalPriorityTargets[faction])
                     Mod.Globals.WarStatusTracker.ExternalPriorityTargets[faction].Add(system.Def.CoreSystemID);
             }
-            
+
             foreach (var system in HotSpots.FullHomeContendedSystems)
                 Mod.Globals.WarStatusTracker.FullHomeContendedSystems.Add(system.Key.Def.CoreSystemID, system.Value);
             foreach (var system in HotSpots.HomeContendedSystems)

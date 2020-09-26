@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using BattleTech;
 using BattleTech.UI;
 using BattleTech.UI.TMProWrapper;
@@ -38,14 +39,13 @@ namespace GalaxyatWar
 
         internal void ShowDeploymentIndicator(bool isDeploymentRequired)
         {
-            if (Time.time > counter + 1)
+            if (Time.time > counter++)
             {
-                counter++;
-                // IN_SYSTEM seems to miss the transition to the jump when taking a new deployment
                 if (playPauseButton != null &&
-                    Mod.Globals.Sim.TravelState == SimGameTravelStatus.IN_SYSTEM)
+                    Mod.Globals.Sim.TravelState == SimGameTravelStatus.IN_SYSTEM &&
+                    (Mod.Globals.Sim.activeBreadcrumb == null ||
+                     Mod.Globals.Sim.activeBreadcrumb?.TargetSystem == Mod.Globals.Sim.CurSystem.ID))
                 {
-                    // SetActive is pretty expensive, so avoid doing it
                     if (isDeploymentRequired && playPauseButton.activeSelf)
                     {
                         image.color = new Color(200, 0, 0);

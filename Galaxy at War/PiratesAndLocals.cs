@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Harmony;
 using UnityEngine;
 
@@ -138,16 +139,22 @@ namespace GalaxyatWar
 
         public static void DistributePirateResources()
         {
-            var i = 0;
-            while (CurrentPAResources > 0 && i != 1000)
+            //var avgActivity = SystemStatus.All.Select(x => x.Value.PirateActivity).Sum() / SystemStatus.All.Count;
+            //FileLog.Log("Average pirate activity: " + avgActivity);
+            //var i = 0;
+            var shuffledSystems = Mod.Globals.WarStatusTracker.systems.OrderBy(x => Mod.Globals.Rng.Next()).ToList();
+            var skipSystems = Mod.Globals.WarStatusTracker.HotBox
+                .Concat(Mod.Globals.WarStatusTracker.FlashpointSystems)
+                .Concat(Mod.Globals.WarStatusTracker.HyadesRimGeneralPirateSystems)
+                .ToList();
+
+            for (var index = 0; index < shuffledSystems.Count && CurrentPAResources > 0; index = index++ > shuffledSystems.Count ? 0 : index)
             {
-                var systemStatus = Mod.Globals.WarStatusTracker.systems.GetRandomElement();
+                var systemStatus = shuffledSystems[index];
                 if (systemStatus.owner == "NoFaction" ||
                     Mod.Settings.ImmuneToWar.Contains(systemStatus.owner) ||
-                    Mod.Globals.WarStatusTracker.HotBox.Contains(systemStatus.name) ||
-                    Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(systemStatus.name) ||
-                    Mod.Globals.WarStatusTracker.HyadesRimGeneralPirateSystems.Contains(systemStatus.name) ||
-                    Mod.Settings.HyadesPirates.Contains(systemStatus.owner))
+                    Mod.Settings.HyadesPirates.Contains(systemStatus.owner) ||
+                    skipSystems.Contains(systemStatus.name))
                 {
                     systemStatus.PirateActivity = 0;
                     continue;
@@ -167,7 +174,7 @@ namespace GalaxyatWar
                     {
                         systemStatus.PirateActivity += Math.Min(totalPA, 100 - systemStatus.PirateActivity) * Mod.Globals.SpendFactor;
                         CurrentPAResources -= Math.Min(totalPA, 100 - systemStatus.PirateActivity) * Mod.Globals.SpendFactor;
-                        i = 0;
+                        //i = 0;
                         if (!pirateSystemsContainsSystemStatus)
                         {
                             Mod.Globals.WarStatusTracker.FullPirateSystems.Add(systemStatus.name);
@@ -191,7 +198,7 @@ namespace GalaxyatWar
                     {
                         systemStatus.PirateActivity += (100 - systemStatus.PirateActivity) * Mod.Globals.SpendFactor;
                         CurrentPAResources -= (100 - systemStatus.PirateActivity) * Mod.Globals.SpendFactor;
-                        i++;
+                        //i++;
                         if (!pirateSystemsContainsSystemStatus)
                         {
                             Mod.Globals.WarStatusTracker.FullPirateSystems.Add(systemStatus.name);

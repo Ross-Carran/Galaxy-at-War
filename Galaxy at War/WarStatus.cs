@@ -61,6 +61,9 @@ namespace GalaxyatWar
             if (Mod.Settings.ISMCompatibility)
                 Mod.Settings.IncludedFactions = new List<string>(Mod.Settings.IncludedFactions_ISM);
 
+            SystemStatus.All.Clear();
+            WarFaction.All.Clear();
+            DeathListTracker.All.Clear();
             CurSystem = Mod.Globals.Sim.CurSystem.Name;
             TempPRGain = 0;
             HotBoxTravelling = false;

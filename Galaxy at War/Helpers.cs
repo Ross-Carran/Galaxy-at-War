@@ -720,7 +720,8 @@ namespace GalaxyatWar
             var targetSystem = SystemStatus.All[system.Name];
             if (targetSystem == null)
             {
-                FileLog.Log($"null systemStatus {system.Name} at DeltaInfluence");
+                FileLog.Log($"null systemStatus {system.Name} at DeltaInfluence, returning 0");
+                return 0;
             }
 
             if (targetSystem?.influenceTracker.Count == 0)
@@ -779,31 +780,32 @@ namespace GalaxyatWar
 
         internal static bool WillSystemFlip(StarSystem system, string winner, string loser, double deltaInfluence, bool preBattle)
         {
-            var warSystem = SystemStatus.All[system.Name];
-            if (warSystem == null)
+            var systemStatus = SystemStatus.All[system.Name];
+            if (systemStatus?.influenceTracker == null)
             {
-                FileLog.Log($"null systemStatus {system.Name} at WillSystemFlip");
+                FileLog.Log($"systemStatus?.influenceTracker == null, {system.Name} at WillSystemFlip");
+                return false;
             }
 
-            var tempIt = new Dictionary<string, float>(warSystem.influenceTracker);
+            var influenceTracker = new Dictionary<string, float>(systemStatus.influenceTracker);
 
             if (preBattle && !Mod.Globals.InfluenceMaxed)
             {
-                tempIt[winner] += (float) deltaInfluence;
-                tempIt[loser] -= (float) deltaInfluence;
+                influenceTracker[winner] += (float) deltaInfluence;
+                influenceTracker[loser] -= (float) deltaInfluence;
             }
             else if (preBattle && Mod.Globals.InfluenceMaxed)
             {
-                tempIt[winner] += (float) Math.Min(Mod.Globals.AttackerInfluenceHolder, 100 - tempIt[winner]);
-                tempIt[loser] -= (float) deltaInfluence;
+                influenceTracker[winner] += (float) Math.Min(Mod.Globals.AttackerInfluenceHolder, 100 - influenceTracker[winner]);
+                influenceTracker[loser] -= (float) deltaInfluence;
             }
 
-            var highKey = tempIt.OrderByDescending(x => x.Value).Select(x => x.Key).First();
-            var highValue = tempIt.OrderByDescending(x => x.Value).Select(x => x.Value).First();
-            tempIt.Remove(highKey);
-            var secondValue = tempIt.OrderByDescending(x => x.Value).Select(x => x.Value).First();
+            var highKey = influenceTracker.OrderByDescending(x => x.Value).Select(x => x.Key).First();
+            var highValue = influenceTracker.OrderByDescending(x => x.Value).Select(x => x.Value).First();
+            influenceTracker.Remove(highKey);
+            var secondValue = influenceTracker.OrderByDescending(x => x.Value).Select(x => x.Value).First();
 
-            if (highKey != warSystem.owner &&
+            if (highKey != systemStatus.owner &&
                 highKey == winner &&
                 highValue - secondValue > Mod.Settings.TakeoverThreshold &&
                 !Mod.Globals.WarStatusTracker.FlashpointSystems.Contains(system.Name) &&
@@ -1159,7 +1161,7 @@ namespace GalaxyatWar
             return formatted;
         }
 
-        internal static bool ShowAndConfirmAbandonDeployment()
+        internal static bool AbortAbandonDeployment()
         {
             FileLog.Log("AbandonDeploymentWarning");
             if (Mod.Globals.WarStatusTracker.Deployment) // just apply the effect
@@ -1184,12 +1186,12 @@ namespace GalaxyatWar
         {
             ResetDeploymentState();
             ReduceReputation();
-            ReRollContracts();
+            //ReRollContracts();
         }
 
-        private static void ReRollContracts()
+        private static void ReRollContracts(string caller = null)
         {
-            FileLog.Log($"Refreshing contracts at ReRollContracts ({Mod.Globals.Sim.CurSystem.Name}).");
+            FileLog.Log($"Refreshing contracts at {caller} ({Mod.Globals.Sim.CurSystem.Name}).");
             var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
             Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
         }

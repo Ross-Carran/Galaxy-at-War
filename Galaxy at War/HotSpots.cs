@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -126,12 +126,12 @@ namespace GalaxyatWar
             {
                 if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
-        
+
                 Mod.Globals.Sim.CurSystem.MissionsCompleted = 0;
                 Mod.Globals.Sim.CurSystem.CurBreadcrumbOverride = 0;
                 Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs = 0;
                 __state = Mod.Globals.Sim.CurSystem.CurMaxContracts;
-        
+
                 foreach (var theFaction in Mod.Globals.IncludedFactions)
                 {
                     var deathListTracker = DeathListTracker.All[theFaction];
@@ -142,153 +142,158 @@ namespace GalaxyatWar
                     //    deathListTracker = _;
                     //    FileLog.Log($"Created new DeathListTracker for {theFaction}");
                     //}
-        
+
                     AdjustDeathList(deathListTracker, true);
                 }
-        
+
                 if (Mod.Settings.LimitSystemContracts.ContainsKey(Mod.Globals.Sim.CurSystem.Name))
                 {
                     Mod.Globals.Sim.CurSystem.CurMaxContracts = Mod.Settings.LimitSystemContracts[Mod.Globals.Sim.CurSystem.Name];
                 }
-        
+
                 if (Mod.Globals.WarStatusTracker.Deployment)
                 {
                     Mod.Globals.Sim.CurSystem.CurMaxContracts = Mod.Settings.DeploymentContracts;
                 }
             }
-        
+
             private static void Postfix(ref float __state)
             {
                 if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
-        
+
                 // no point running it before influence has been setup
                 if (Mod.Globals.NeedsProcessing)
                 {
                     ProcessHotSpots();
                 }
-        
-                isBreadcrumb = true;
-                Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Clear();
-                Mod.Globals.Sim.CurSystem.MissionsCompleted = 20;
-                Mod.Globals.Sim.CurSystem.CurBreadcrumbOverride = 1;
-                Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs = 1;
-                Mod.Globals.WarStatusTracker.DeploymentContracts.Clear();
-        
-                // there is at least one system under contention, it's not a defensive system and there's no current deployment
-                if (HomeContendedSystems.Count != 0 &&
-                    !Mod.Settings.DefensiveFactions.Contains(Mod.Globals.Sim.CurSystem.OwnerValue.Name) &&
-                    !Mod.Globals.WarStatusTracker.Deployment)
-                {
-                    var i = 0;
-                    var twiddle = 0;
-                    var index = 0;
-                    Mod.Globals.WarStatusTracker.HomeContendedStrings.Clear();
-                    while (HomeContendedSystems.Count != 0)
-                    {
-                        Mod.Globals.Sim.CurSystem.CurBreadcrumbOverride = i + 1;
-                        Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs = i + 1;
-                        if (twiddle == 0)
-                            twiddle = -1;
-                        else if (twiddle == 1)
-                            index = Mod.Globals.Rng.Next(0, 3 * HomeContendedSystems.Count / 4);
-                        else if (twiddle == -1)
-                            index = Mod.Globals.Rng.Next(HomeContendedSystems.Count / 4, 3 * HomeContendedSystems.Count / 4);
-        
-                        var breadcrumb = HomeContendedSystems[index];
-        
-                        if (breadcrumb == Mod.Globals.Sim.CurSystem ||
-                            Mod.Globals.Sim.CurSystem.OwnerValue.Name == "Locals" && breadcrumb.OwnerValue.Name != "Locals" ||
-                            !Mod.Globals.IncludedFactions.Contains(breadcrumb.OwnerValue.Name))
-                        {
-                            // todo get rid of double list?
-                            HomeContendedSystems.Remove(breadcrumb);
-                            Mod.Globals.WarStatusTracker.HomeContendedStrings.Remove(breadcrumb.Name);
-                            continue;
-                        }
-        
-                        // todo get rid of temporary flip workaround?
-                        TemporaryFlip(breadcrumb, Mod.Globals.Sim.CurSystem.OwnerValue.Name);
-                        if (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == 0 &&
-                            breadcrumb.OwnerValue.Name != Mod.Globals.Sim.CurSystem.OwnerValue.Name)
-                        {
-                            Mod.Globals.Sim.GeneratePotentialContracts(true, null, breadcrumb);
-                            SystemBonuses(breadcrumb);
-                            var contract = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Find(x => x.TargetSystem == breadcrumb.ID);
-                            contract.Override.contractDisplayStyle = ContractDisplayStyle.BaseCampaignStory;
-                            Mod.Globals.WarStatusTracker.DeploymentContracts.Add(contract.Override.contractName);
-                        }
-                        else if (twiddle == -1 || breadcrumb.OwnerValue.Name == Mod.Globals.Sim.CurSystem.OwnerValue.Name)
-                        {
-                            Mod.Globals.Sim.GeneratePotentialContracts(false, null, breadcrumb);
-                            SystemBonuses(breadcrumb);
-                        }
-                        else if (twiddle == 1)
-                        {
-                            Mod.Globals.Sim.GeneratePotentialContracts(false, null, breadcrumb);
-                            SystemBonuses(breadcrumb);
-        
-                            var contract = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Find(x => x.TargetSystem == breadcrumb.ID);
-                            contract.Override.contractDisplayStyle = ContractDisplayStyle.BaseCampaignStory;
-                            Mod.Globals.WarStatusTracker.DeploymentContracts.Add(contract.Override.contractName);
-                        }
-        
-                        var systemStatus = SystemStatus.All[breadcrumb.Name];
-                        RefreshContractsEmployersAndTargets(systemStatus);
-                        HomeContendedSystems.Remove(breadcrumb);
-                        Mod.Globals.WarStatusTracker.HomeContendedStrings.Add(breadcrumb.Name);
-                        if (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == Mod.Settings.InternalHotSpots)
-                            break;
-        
-                        i = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count;
-                        twiddle *= -1;
-                    }
-                }
-        
-                if (ExternalPriorityTargets.Count != 0)
-                {
-                    var systemBreadcrumbsCount = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count;
-                    var j = systemBreadcrumbsCount;
-                    foreach (var target in ExternalPriorityTargets.Keys)
-                    {
-                        if (ExternalPriorityTargets[target].Count == 0 || Mod.Settings.DefensiveFactions.Contains(target) ||
-                            !Mod.Globals.IncludedFactions.Contains(target))     // todo drop this 3rd clause
-                        {
-                            continue;
-                        }
-        
-                        do     // todo switch loop type
-                        {
-                            var index = Mod.Globals.Rng.Next(0, ExternalPriorityTargets[target].Count);
-                            var targetSystem = ExternalPriorityTargets[target].GetRandomElement();
-                            Mod.Globals.Sim.CurSystem.CurBreadcrumbOverride = j + 1;
-                            Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs = j + 1;
-                            if (targetSystem == Mod.Globals.Sim.CurSystem)
-                            {
-                                ExternalPriorityTargets[target].Remove(Mod.Globals.Sim.CurSystem);
-                                continue;
-                            }
-        
-                            TemporaryFlip(targetSystem, target);
-                            if (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == 0)
-                                Mod.Globals.Sim.GeneratePotentialContracts(true, null, targetSystem);
-                            else
-                                Mod.Globals.Sim.GeneratePotentialContracts(false, null, targetSystem);
-                            SystemBonuses(targetSystem);
-                            var systemStatus = SystemStatus.All[targetSystem.Name];
-                            RefreshContractsEmployersAndTargets(systemStatus);
-                            ExternalPriorityTargets[target].RemoveAt(index);
-                        } while (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == j && ExternalPriorityTargets[target].Count != 0);
-        
-                        j = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count;
-                        if (j - systemBreadcrumbsCount == Mod.Settings.ExternalHotSpots)
-                            break;
-                    }
-                }
 
-                FileLog.Log(Mod.Globals.Sim.CurSystem.contractRetrievalCallback.GetMethodInfo().FullDescription());
+                isBreadcrumb = true;
+                ReRollCustomContracts();
+
+                //FileLog.Log(Mod.Globals.Sim.CurSystem.contractRetrievalCallback.GetMethodInfo().FullDescription());
                 isBreadcrumb = false;
                 Mod.Globals.Sim.CurSystem.CurMaxContracts = __state;
+            }
+        }
+
+        internal static void ReRollCustomContracts()
+        {
+            Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Clear();
+            Mod.Globals.Sim.CurSystem.MissionsCompleted = 20;
+            Mod.Globals.Sim.CurSystem.CurBreadcrumbOverride = 1;
+            Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs = 1;
+            Mod.Globals.WarStatusTracker.DeploymentContracts.Clear();
+
+            // there is at least one system under contention, it's not a defensive system and there's no current deployment
+            if (HomeContendedSystems.Count != 0 &&
+                !Mod.Settings.DefensiveFactions.Contains(Mod.Globals.Sim.CurSystem.OwnerValue.Name) &&
+                !Mod.Globals.WarStatusTracker.Deployment)
+            {
+                var i = 0;
+                var twiddle = 0;
+                var index = 0;
+                Mod.Globals.WarStatusTracker.HomeContendedStrings.Clear();
+                while (HomeContendedSystems.Count != 0)
+                {
+                    Mod.Globals.Sim.CurSystem.CurBreadcrumbOverride = i + 1;
+                    Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs = i + 1;
+                    if (twiddle == 0)
+                        twiddle = -1;
+                    else if (twiddle == 1)
+                        index = Mod.Globals.Rng.Next(0, 3 * HomeContendedSystems.Count / 4);
+                    else if (twiddle == -1)
+                        index = Mod.Globals.Rng.Next(HomeContendedSystems.Count / 4, 3 * HomeContendedSystems.Count / 4);
+
+                    var breadcrumb = HomeContendedSystems[index];
+
+                    if (breadcrumb == Mod.Globals.Sim.CurSystem ||
+                        Mod.Globals.Sim.CurSystem.OwnerValue.Name == "Locals" && breadcrumb.OwnerValue.Name != "Locals" ||
+                        !Mod.Globals.IncludedFactions.Contains(breadcrumb.OwnerValue.Name))
+                    {
+                        // todo get rid of double list?
+                        HomeContendedSystems.Remove(breadcrumb);
+                        Mod.Globals.WarStatusTracker.HomeContendedStrings.Remove(breadcrumb.Name);
+                        continue;
+                    }
+
+                    // todo get rid of temporary flip workaround?
+                    TemporaryFlip(breadcrumb, Mod.Globals.Sim.CurSystem.OwnerValue.Name);
+                    if (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == 0 &&
+                        breadcrumb.OwnerValue.Name != Mod.Globals.Sim.CurSystem.OwnerValue.Name)
+                    {
+                        Mod.Globals.Sim.GeneratePotentialContracts(true, null, breadcrumb);
+                        SystemBonuses(breadcrumb);
+                        var contract = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Find(x => x.TargetSystem == breadcrumb.ID);
+                        contract.Override.contractDisplayStyle = ContractDisplayStyle.BaseCampaignStory;
+                        Mod.Globals.WarStatusTracker.DeploymentContracts.Add(contract.Override.contractName);
+                    }
+                    else if (twiddle == -1 || breadcrumb.OwnerValue.Name == Mod.Globals.Sim.CurSystem.OwnerValue.Name)
+                    {
+                        Mod.Globals.Sim.GeneratePotentialContracts(false, null, breadcrumb);
+                        SystemBonuses(breadcrumb);
+                    }
+                    else if (twiddle == 1)
+                    {
+                        Mod.Globals.Sim.GeneratePotentialContracts(false, null, breadcrumb);
+                        SystemBonuses(breadcrumb);
+
+                        var contract = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Find(x => x.TargetSystem == breadcrumb.ID);
+                        contract.Override.contractDisplayStyle = ContractDisplayStyle.BaseCampaignStory;
+                        Mod.Globals.WarStatusTracker.DeploymentContracts.Add(contract.Override.contractName);
+                    }
+
+                    var systemStatus = SystemStatus.All[breadcrumb.Name];
+                    RefreshContractsEmployersAndTargets(systemStatus);
+                    HomeContendedSystems.Remove(breadcrumb);
+                    Mod.Globals.WarStatusTracker.HomeContendedStrings.Add(breadcrumb.Name);
+                    if (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == Mod.Settings.InternalHotSpots)
+                        break;
+
+                    i = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count;
+                    twiddle *= -1;
+                }
+            }
+
+            if (ExternalPriorityTargets.Count != 0)
+            {
+                var systemBreadcrumbsCount = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count;
+                var j = systemBreadcrumbsCount;
+                foreach (var target in ExternalPriorityTargets.Keys)
+                {
+                    if (ExternalPriorityTargets[target].Count == 0 || Mod.Settings.DefensiveFactions.Contains(target) ||
+                        !Mod.Globals.IncludedFactions.Contains(target)) // todo drop this 3rd clause
+                    {
+                        continue;
+                    }
+
+                    do // todo switch loop type
+                    {
+                        var index = Mod.Globals.Rng.Next(0, ExternalPriorityTargets[target].Count);
+                        var targetSystem = ExternalPriorityTargets[target].GetRandomElement();
+                        Mod.Globals.Sim.CurSystem.CurBreadcrumbOverride = j + 1;
+                        Mod.Globals.Sim.CurSystem.CurMaxBreadcrumbs = j + 1;
+                        if (targetSystem == Mod.Globals.Sim.CurSystem)
+                        {
+                            ExternalPriorityTargets[target].Remove(Mod.Globals.Sim.CurSystem);
+                            continue;
+                        }
+
+                        TemporaryFlip(targetSystem, target);
+                        if (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == 0)
+                            Mod.Globals.Sim.GeneratePotentialContracts(true, null, targetSystem);
+                        else
+                            Mod.Globals.Sim.GeneratePotentialContracts(false, null, targetSystem);
+                        SystemBonuses(targetSystem);
+                        var systemStatus = SystemStatus.All[targetSystem.Name];
+                        RefreshContractsEmployersAndTargets(systemStatus);
+                        ExternalPriorityTargets[target].RemoveAt(index);
+                    } while (Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count == j && ExternalPriorityTargets[target].Count != 0);
+
+                    j = Mod.Globals.Sim.CurSystem.activeSystemBreadcrumbs.Count;
+                    if (j - systemBreadcrumbsCount == Mod.Settings.ExternalHotSpots)
+                        break;
+                }
             }
         }
 
@@ -464,7 +469,7 @@ namespace GalaxyatWar
                     if (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                         return;
 
-                    if (!ShowAndConfirmAbandonDeployment())
+                    if (!AbortAbandonDeployment())
                     {
                         ReduceReputation();
                         ResetDeploymentState();
@@ -832,7 +837,6 @@ namespace GalaxyatWar
             }
         }
 
-
         [HarmonyPatch(typeof(Contract), "GenerateSalvage")]
         public static class ContractGenerateSalvagePatch
         {
@@ -1037,19 +1041,13 @@ namespace GalaxyatWar
                 if (Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
+                // BUG this only creates travel contracts in Locals systems
                 if (!Mod.Globals.HoldContracts && !Mod.Globals.WarStatusTracker.StartGameInitialized)
                 {
                     ProcessHotSpots();
-                    FileLog.Log($"Refreshing contracts at StartContractScreen because !StartGameInitialized ({Mod.Globals.Sim.CurSystem.Name})");
-                    var cmdCenter = Mod.Globals.Sim.RoomManager.CmdCenterRoom;
-                    Mod.Globals.Sim.CurSystem.GenerateInitialContracts(() => cmdCenter.OnContractsFetched());
+                    FileLog.Log($"Refreshing contracts at StartContractScreen ({Mod.Globals.Sim.CurSystem.Name})");
+                    ReRollCustomContracts();
                     Mod.Globals.WarStatusTracker.StartGameInitialized = true;
-                    //FileLog.Log("Contracts generated:");
-                    //foreach (var contract in Mod.Globals.Sim.GetAllCurrentlySelectableContracts())
-                    //{
-                    //    FileLog.Log($"{contract.Name,-25} ({contract.Override.employerTeam.FactionValue.Name} vs {contract.Override.targetTeam.FactionValue.Name}).  Difficulties: C:{contract.Difficulty} CO:{contract.Override.difficulty} CUI:{contract.Override.difficultyUIModifier} UI:{contract.Override.GetUIDifficulty()}");
-                    //    FileLog.Log($"Flashpoint? {contract.IsFlashpointContract}.  Campaign Flashpoint? {contract.IsFlashpointCampaignContract}.  Priority? {contract.IsPriorityContract}.  Travel? {contract.Override.travelSeed != 0}");
-                    //}
                 }
 
                 FileLog.Log("HoldContracts");
@@ -1081,7 +1079,7 @@ namespace GalaxyatWar
 
                 var targetSystem = Mod.Globals.Sim.StarSystemDictionary[__instance.SelectedContract.TargetSystem];
                 if (targetSystem != Mod.Globals.Sim.CurSystem &&
-                    !ShowAndConfirmAbandonDeployment())
+                    !AbortAbandonDeployment())
                 {
                     __instance.NegotiateContract(__instance.SelectedContract);
                     return false;
@@ -1092,7 +1090,7 @@ namespace GalaxyatWar
                     const string message = "Commander, this contract will bring us right to the front lines. If we accept it, we will be forced to take missions when our employer needs us, to simultaneously attack in support of their war effort. We will be committed to this deployment until the system is taken or properly defended, and will lose significant reputation if we end up backing out before the job is done. But, oh man, they will certainly reward us well if their operation is ultimately successful! This deployment may require missions to be done without time between them for repairs or to properly rest our pilots. I strongly encourage you to only accept this arrangement if you think we're up to it.";
                     PauseNotification.Show("Deployment", message, Mod.Globals.Sim.GetCrewPortrait(SimGameCrew.Crew_Darius), string.Empty, true, () =>
                     {
-                        if (ShowAndConfirmAbandonDeployment())
+                        if (AbortAbandonDeployment())
                         {
                             __instance.NegotiateContract(__instance.SelectedContract);
                         }

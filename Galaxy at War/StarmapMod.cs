@@ -215,6 +215,7 @@ namespace GalaxyatWar
         [HarmonyPatch(typeof(SimGameState), "Update")]
         public static class SimGameStateUpdatePatch
         {
+            private static long counter;
             public static void Postfix()
             {
                 if (Mod.Globals.WarStatusTracker != null)
@@ -222,11 +223,11 @@ namespace GalaxyatWar
                     Mod.DeploymentIndicator?.ShowDeploymentIndicator(Mod.Globals.WarStatusTracker.Deployment && Mod.Globals.WarStatusTracker.EscalationDays <= 0);
                 }
 
-                if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
+                if (Time.time > counter++)
                 {
-                    return;
+                    FileLog.Log(Mod.Globals.WarStatusTracker?.StartGameInitialized.ToString());
                 }
-
+                
                 if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.R))
                 {
                     try
@@ -361,7 +362,6 @@ namespace GalaxyatWar
         //{
         //    public static void Prefix()
         //    {
-        //        //FileLog.Log($"RefreshStarmap");
         //        var sim = UnityGameInstance.BattleTechGame.Simulation;
         //        if (Mod.Globals.WarStatusTracker == null || sim.IsCampaign && !sim.CompanyTags.Contains("story_complete"))
         //            return;
@@ -386,6 +386,7 @@ namespace GalaxyatWar
                 if (Mod.Globals.WarStatusTracker == null || Mod.Globals.Sim.IsCampaign && !Mod.Globals.Sim.CompanyTags.Contains("story_complete"))
                     return;
 
+                FileLog.Log("PING");
                 if (!Mod.Settings.ExpandedMap)
                     DynamicLogos.PlaceAndScaleLogos(Mod.Settings.LogoNames, __instance);
             }
